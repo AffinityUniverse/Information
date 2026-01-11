@@ -401,7 +401,7 @@
     "스크래치 베이직":"ScratchBasic",
     "스크래치 프로":"ScratchPro",
     "플레이 북":"PlayBook",
-    "HTML 지기너":"HTMLBeginner",
+    "HTML 비기너":"HTMLBeginner",
     "HTML 베이직":"HTMLBasic",
     "HTML 프로":"HTMLPro",
     "자바스크립트 베이직":"JavaScriptBasic",
@@ -412,7 +412,8 @@
     "퍼블리싱":"Publishing",
     "웹 프로 마스터":"ProMaster",
     "웹 프로필":"Profile",
-    "마케팅":"Marketing",
+"마케팅 매니지먼트":"Management",
+    "1:1 브랜딩 코스":"Branding1on1",
   };
 
   const CURRICULUM_GROUPS = [
@@ -420,13 +421,14 @@
     { group:"디지털 드로잉", items:["드로잉 베이직","드로잉 프로","드로잉 북","풍경화 드로잉","애니메이션 베이직","애니메이션 프로"] },
     { group:"캐릭터/IP", items:["굿즈 디자인","이모티콘 디자인"] },
     { group:"영상/모션", items:["비디오 베이직","비디오 프로","모션 그래픽","북 애니메이션","모션폴리오"] },
-    { group:"코드 디자인", items:["스크래치 베이직","스크래치 프로","플레이 북","HTML 지기너","HTML 베이직","HTML 프로","자바스크립트 베이직","자바스크립트 프로"] },
+    { group:"코드 디자인", items:["스크래치 베이직","스크래치 프로","플레이 북","HTML 비기너","HTML 베이직","HTML 프로","자바스크립트 베이직","자바스크립트 프로"] },
     { group:"메시지 디자인", items:["스토리 크래프팅","아트 에세이","아이덴티티 북","퍼블리싱"] },
-    { group:"웹 프로듀서", items:["웹 프로 마스터","웹 프로필","마케팅"] },
+    { group:"웹 프로듀서", items:["웹 프로 마스터","웹 프로필","마케팅 매니지먼트","1:1 브랜딩 코스"] },
     { group:"기타", items:["어피니티 마스터"] },
   ];
 
   const CUSTOM_COURSE_LABEL = "커스텀 코스(개별 맞춤)";
+  const BRANDING_COURSE_LABEL = "1:1 브랜딩 코스";
 
   /*********************
    * 캡컷 블록
@@ -458,6 +460,7 @@
 - 인물이 깔끔하게 나온 전체 샷 위주로 준비
 
 ━━━━━━━━━━━━━━
+
 `;
 
   /*********************
@@ -947,7 +950,8 @@
     if(!korTimeStr) return { ok:false, error:"한국시간을 입력해 주세요. (예: 7 또는 7:30)" };
 
     const isCustomCourse = (curriculumName === CUSTOM_COURSE_LABEL);
-    if(!isCustomCourse && !curriculumUrl) return { ok:false, error:"커리큘럼 URL 코드가 비어 있습니다. (선택하면 자동 입력됩니다)" };
+    const isBrandingCourse = (curriculumName === BRANDING_COURSE_LABEL);
+    if(!isCustomCourse && !isBrandingCourse && !curriculumUrl) return { ok:false, error:"커리큘럼 URL 코드가 비어 있습니다. (선택하면 자동 입력됩니다)" };
 
     const parsed = parseKorTimeTo24h(amPm, korTimeStr);
     if(!parsed) return { ok:false, error:"한국시간 형식이 올바르지 않습니다. (예: 7 또는 7:30, 시간은 1~12)" };
@@ -963,7 +967,10 @@
       ? "💬 문의는 언제든 카카오톡으로 메시지 주세요!"
       : "이번 클래스도 함께 즐겁게 진행하겠습니다!";
 
-    const duration = (classType === "ONE_ON_ONE") ? "40분" : "1시간";
+    let duration = (classType === "ONE_ON_ONE") ? "40분" : "1시간";
+
+    // ✅ 예외: 1:1 브랜딩 코스는 1시간 고정
+    if (curriculumName === BRANDING_COURSE_LABEL) duration = "1시간";
 
     // 한국시간 표기 규칙 반영
     const korH12 = (parsed.hh % 12 || 12);
@@ -972,7 +979,7 @@
       : `${korH12}:${String(parsed.mm).padStart(2,"0")}`;
 
     const isArtBook = curriculumName.includes("아트북");
-    const isCapcut = curriculumName.includes("캡컷");
+    const isVideo = (curriculumName === "비디오 베이직" || curriculumName === "비디오 프로");
     const stepPrefix = isArtBook ? "단계별 " : "";
 
     const absence = (classType === "GROUP")
@@ -985,7 +992,7 @@
 `
       : "";
 
-    const capcutBlock = isCapcut ? CAPCUT_BLOCK : "";
+    const capcutBlock = isVideo ? CAPCUT_BLOCK : "";
 
     // 시작/종료 요일
     const startW = WEEKDAY_KO[toDateLocal(startDay).getDay()];
@@ -1124,7 +1131,10 @@ ${timeLine}
 ${(curriculumName === CUSTOM_COURSE_LABEL)
         ? `1:1 ${$("customCourseName").value.trim()} 클래스는
 개별 맞춤 커리큘럼으로 진행됩니다.`
-        : `${curriculumName} 커리큘럼 보기
+        : (curriculumName === BRANDING_COURSE_LABEL)
+          ? `1:1 브랜딩 코스는
+개별 맞춤 커리큘럼으로 진행됩니다.`
+          : `${curriculumName} 커리큘럼 보기
 👉🏻 https://affinityuniverse.com/${curriculumUrl}` }
 
 ━━━━━━━━━━━━━━
@@ -1312,11 +1322,13 @@ ${absence}${capcutBlock}${greeting}
     $("curriculumSelect").addEventListener("change", ()=>{
       const v = $("curriculumSelect").value;
       const isCustom = (v === CUSTOM_COURSE_LABEL);
+      const isBranding = (v === BRANDING_COURSE_LABEL);
+      const isNoLink = isCustom || isBranding;
 
       $("customCourseBox").style.display = isCustom ? "block" : "none";
-      $("curriculumUrl").disabled = isCustom;
+      $("curriculumUrl").disabled = isNoLink;
 
-      if(isCustom){
+      if(isNoLink){
         $("curriculumUrl").value = "";
       }else{
         const slug = CURRICULUM_MAP[v] || "";
