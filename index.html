@@ -701,39 +701,39 @@
   // ✅ 수업 기간 중 "수업일(주 1회)" 기준으로 offset 변화가 처음 생기는 날 찾기
   // 반환: { iso, diffMinutes, baseOffset, newOffset } or null
   function findDstShiftFirstClass({
-  startISO, endISO, weekdayKo, kstTime24, targetTz
-}){
-  const start = toDateLocal(startISO);
-  const end = toDateLocal(endISO);
-  const targetDay = WEEKDAY_TO_NUM[weekdayKo];
-  if(targetDay === undefined) return null;
+    startISO, endISO, weekdayKo, kstTime24, targetTz
+  }){
+    const start = toDateLocal(startISO);
+    const end = toDateLocal(endISO);
+    const targetDay = WEEKDAY_TO_NUM[weekdayKo];
+    if(targetDay === undefined) return null;
 
-  // 첫 수업일(한국 달력 기준)
-  let cur = new Date(start);
-  while(cur.getDay() !== targetDay) cur.setDate(cur.getDate() + 1);
-  if(cur > end) return null;
+    // 첫 수업일(한국 달력 기준)
+    let cur = new Date(start);
+    while(cur.getDay() !== targetDay) cur.setDate(cur.getDate() + 1);
+    if(cur > end) return null;
 
-  // ✅ 기준 offset = 첫 수업일 인스턴트 기준 (로컬 ISO 사용)
-  const baseISO = toISODateLocal(cur);
-  const baseInstantKST = makeKoreaZonedDate(baseISO, kstTime24.hh, kstTime24.mm);
-  const baseOffset = getUtcOffsetMinutes(baseInstantKST, targetTz);
+    // 기준 offset = 첫 수업일 인스턴트 기준
+    const baseISO = cur.toISOString().slice(0,10);
+    const baseInstantKST = makeKoreaZonedDate(baseISO, kstTime24.hh, kstTime24.mm);
+    const baseOffset = getUtcOffsetMinutes(baseInstantKST, targetTz);
 
-  // 다음 수업일(7일 단위)로 돌면서 offset 변화 감지
-  while(cur <= end){
-    const iso = toISODateLocal(cur); // ✅ 여기도 로컬 ISO
-    const inst = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm);
-    const off = getUtcOffsetMinutes(inst, targetTz);
-    if(off !== baseOffset){
-      return {
-        iso,
-        diffMinutes: off - baseOffset,
-        baseOffset,
-        newOffset: off,
-      };
+    // 다음 수업일(7일 단위)로 돌면서 offset 변화 감지
+    while(cur <= end){
+      const iso = cur.toISOString().slice(0,10);
+      const inst = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm);
+      const off = getUtcOffsetMinutes(inst, targetTz);
+      if(off !== baseOffset){
+        return {
+          iso,
+          diffMinutes: off - baseOffset,
+          baseOffset,
+          newOffset: off,
+        };
+      }
+      cur.setDate(cur.getDate() + 7);
     }
-    cur.setDate(cur.getDate() + 7);
-  }
-  return null;
+    return null;
   }
 
   /*********************
