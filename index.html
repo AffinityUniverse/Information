@@ -388,10 +388,10 @@
     "파운데이션":"Foundation",
     "디플로마":"Diploma",
     "에디터":"Editor",
-    "드로잉 베이직":"DrawingBasic",
-    "드로잉 프로":"DrawingPro",
-    "드로잉 북":"DrawingBook",
-    "풍경화 드로잉":"Landscape",
+    "디지털 드로잉 베이직":"DrawingBasic",
+    "디지털 드로잉 프로":"DrawingPro",
+    "디지털 드로잉 북":"DrawingBook",
+    "풍경화 디지털 드로잉":"Landscape",
     "애니메이션 베이직":"AnimationBasic",
     "애니메이션 프로":"AnimationPro",
     "굿즈 디자인":"GoodsDesign",
@@ -422,7 +422,7 @@
 
   const CURRICULUM_GROUPS = [
     { group:"그림책/어피니티 디자인", items:["아트북 디자인 Lv.1","아트북 디자인 Lv.2","아트북 디자인 Lv.3","아트북 디자인 Lv.4","아트북 디자인 Lv.5","파운데이션","디플로마","에디터"] },
-    { group:"디지털 드로잉", items:["드로잉 베이직","드로잉 프로","드로잉 북","풍경화 드로잉","애니메이션 베이직","애니메이션 프로"] },
+    { group:"디지털 드로잉", items:["디지털 드로잉 베이직","디지털 드로잉 프로","디지털 드로잉 북","풍경화 디지털 드로잉","애니메이션 베이직","애니메이션 프로"] },
     { group:"캐릭터/IP", items:["굿즈 디자인","이모티콘 디자인"] },
     { group:"영상/모션", items:["비디오 베이직","비디오 프로","모션 그래픽","북 애니메이션","모션폴리오"] },
     { group:"코드 디자인", items:["스크래치 베이직","스크래치 프로","플레이 북","HTML 비기너","HTML 베이직","HTML 프로","자바스크립트 베이직","자바스크립트 프로"] },
@@ -440,8 +440,6 @@
   const CAPCUT_BLOCK =
 `📌 강의 사전 준비 안내
 (⚠️ 캡컷 프로 결제 필수 월 19,800원)
-
-🎥 영상·사진 촬영 가이드
 
 🔎 촬영 전 준비
 
@@ -669,10 +667,13 @@
   }
 
   // ✅ “• 수업 시간:” 줄 출력용
-  function formatTimeLine(flag, weekday, amPm, time, suffix=""){
-    // suffix 예: " (1시간 수업)" or "" etc.
-    return `${flag} ${weekday}요일 ${amPm} ${time}${suffix}`;
-  }
+  // ✅ “• 수업 시간:” 줄 출력용 (요일 선택 출력 지원)
+function formatTimeLine(flag, weekday, amPm, time, suffix="", showWeekday=true){
+  // suffix 예: " (1시간 수업)" or "" etc.
+  return showWeekday
+    ? `${flag} ${weekday}요일 ${amPm} ${time}${suffix}`
+    : `${flag} ${amPm} ${time}${suffix}`;
+}
 
   // ✅ 특정 Date + timeZone의 UTC offset(분) 구하기
   // - DST가 1시간/2시간이어도 diffMinutes로 자동 계산됨
@@ -735,6 +736,119 @@
     }
     return null;
   }
+
+
+/*********************
+ * DST 전환(시작/종료) 탐지: 해당 연도/기간 기준
+ * - 국가/도시마다 전환일·변경량이 달라도, timeZone의 UTC offset 변화(분)로 자동 감지합니다.
+ *********************/
+
+// timeZone에서 dateObj의 "로컬 YYYY-MM-DD" 문자열 얻기
+function getLocalISODate(dateObj, timeZone){
+  const parts = new Intl.DateTimeFormat("en-CA", { // YYYY-MM-DD
+    timeZone,
+    year:"numeric", month:"2-digit", day:"2-digit"
+  }).formatToParts(dateObj);
+
+  const y = parts.find(p=>p.type==="year")?.value;
+  const m = parts.find(p=>p.type==="month")?.value;
+  const d = parts.find(p=>p.type==="day")?.value;
+  return `${y}-${m}-${d}`;
+}
+
+// DST 전환 순간(UTC Date)을 이분탐색으로 좁혀 찾기 (1분 단위)
+function findOffsetChangeInstant(prevDateUtc, nextDateUtc, timeZone, prevOffset){
+  let lo = prevDateUtc.getTime();
+  let hi = nextDateUtc.getTime();
+
+  while(hi - lo > 60 * 1000){
+    const mid = lo + Math.floor((hi - lo) / 2);
+    const off = getUtcOffsetMinutes(new Date(mid), timeZone);
+    if(off === prevOffset){
+      lo = mid + 1;
+    }else{
+      hi = mid;
+    }
+  }
+  return new Date(hi);
+}
+
+/**
+ * 기간(startISO~endISO) 안에서 DST 전환(시작/종료)을 모두 찾습니다.
+ * 반환: [{ instantUtc, localISO, diffMinutes, oldOffset, newOffset, kind }]
+ * - kind: "START" / "END" (diffMinutes 부호로 판정)
+ */
+function findDstTransitionsBetween(startISO, endISO, timeZone){
+  const start = toDateLocal(startISO);
+  const end = toDateLocal(endISO);
+  if(isNaN(start) || isNaN(end)) return [];
+
+  // 경계 누락 방지용 버퍼
+  const scanStart = addDays(start, -1);
+  const scanEnd = addDays(end, +1);
+
+  // UTC 기준 정오로 찍어 일 단위로 offset 변화 감지
+  let cur = new Date(Date.UTC(scanStart.getFullYear(), scanStart.getMonth(), scanStart.getDate(), 12, 0, 0));
+  const endUtc = new Date(Date.UTC(scanEnd.getFullYear(), scanEnd.getMonth(), scanEnd.getDate(), 12, 0, 0));
+
+  let prevOffset = getUtcOffsetMinutes(cur, timeZone);
+  let prevDateUtc = new Date(cur);
+  const transitions = [];
+
+  while(cur <= endUtc){
+    cur = new Date(cur.getTime() + 24*60*60*1000); // +1 day
+    const off = getUtcOffsetMinutes(cur, timeZone);
+
+    if(off !== prevOffset){
+      const instantUtc = findOffsetChangeInstant(prevDateUtc, cur, timeZone, prevOffset);
+      const localISO = getLocalISODate(instantUtc, timeZone);
+      const diffMinutes = off - prevOffset;
+      const kind = (diffMinutes > 0) ? "START" : "END";
+
+      transitions.push({
+        instantUtc,
+        localISO,
+        diffMinutes,
+        oldOffset: prevOffset,
+        newOffset: off,
+        kind
+      });
+
+      prevOffset = off;
+    }
+    prevDateUtc = new Date(cur);
+  }
+
+  // 전환일을 "현지 로컬 날짜" 기준으로 수업 기간 안으로 필터링
+  return transitions.filter(t => t.localISO >= startISO && t.localISO <= endISO);
+}
+
+/**
+ * (해외) "DST 전환일 바로 다음 수업일" 찾기
+ * - 전환 instant(UTC) 이후에 오는 첫 수업 instant가 바로 '다음 수업'
+ */
+function findNextClassAfterTransition({
+  startISO, endISO, weekdayKo, kstTime24, transitionInstantUtc
+}){
+  const start = toDateLocal(startISO);
+  const end = toDateLocal(endISO);
+  const targetDay = WEEKDAY_TO_NUM[weekdayKo];
+  if(targetDay === undefined) return null;
+
+  let cur = new Date(start);
+  while(cur.getDay() !== targetDay) cur.setDate(cur.getDate() + 1);
+  if(cur > end) return null;
+
+  while(cur <= end){
+    const iso = cur.toISOString().slice(0,10);
+    const classInstantKST = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm); // UTC instant
+    if(classInstantKST.getTime() > transitionInstantUtc.getTime()){
+      return { isoKST: iso, classInstantKST };
+    }
+    cur.setDate(cur.getDate() + 7);
+  }
+  return null;
+}
 
   /*********************
    * 휴강일 상태
@@ -931,6 +1045,13 @@
    * 최종 메시지 생성
    *********************/
   function buildMessage(){
+    function dateToISO_Local(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
     const studentName = $("studentName").value.trim();
     const enrollType = $("enrollType").value;
     const familyType = $("familyType").value;
@@ -1003,124 +1124,170 @@
     const endW = WEEKDAY_KO[toDateLocal(endDay).getDay()];
 
     // ✅ 휴강일: 날짜순 + 콤마 연결 + 1/1(월, 새해)
-    const sortedClosed = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
-    let closedBlock = "";
-    if (sortedClosed.length > 0) {
-      const items = sortedClosed.map(x => {
-        const d = toDateLocal(x.date);
-        const m = d.getMonth() + 1;
-        const day = d.getDate();
-        const w = WEEKDAY_KO[d.getDay()];
-        const label = x.name ? `(${w}, ${x.name})` : `(${w})`;
-        return `${m}/${day}${label}`;
-      });
-      closedBlock = `• 휴강일: ${items.join(", ")}\n`;
-    }
+// - 해외 수강생이면 휴강일 명칭 앞에 "한국 " 접두어를 붙입니다. (예: 설날 → 한국 설날)
+const sortedClosed = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
+let closedBlock = "";
+if (sortedClosed.length > 0) {
+  const isOverseas = (studentLocation === "OVERSEAS");
+  const items = sortedClosed.map(x => {
+    const d = toDateLocal(x.date);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const w = WEEKDAY_KO[d.getDay()];
+    const nmRaw = (x.name || "").trim();
+    const nm = (isOverseas && nmRaw)
+      ? (nmRaw.startsWith("한국 ") ? nmRaw : `한국 ${nmRaw}`)
+      : nmRaw;
+    const label = nm ? `(${w}, ${nm})` : `(${w})`;
+    return `${m}/${day}${label}`;
+  });
+  closedBlock = `• 휴강일: ${items.join(", ")}\n`;
+}
 
     // ✅ 수업 시간 라인 생성 (요청 포맷)
-    let timeLine = "";
+let timeLine = "";
 
-    // [시차 없는 경우] = 국내(한국)
-    if(studentLocation === "DOMESTIC"){
-      // 요청: “• 수업 시간: 토요일 오전 9시 (1시간 수업)”
-      // -> 요일은 선택한 요일 기준으로 출력
-      timeLine = `• 수업 시간: ${weekday}요일 ${amPm} ${korTimeDisplay} (${duration} 수업)\n`;
-    } else {
-      const countryKo = $("countryInput").value.trim();
-      const tz = $("tzSelect").value || "";
-      const customFlag = $("customFlag").value.trim();
-      const flag = customFlag || flagFromCountryKo(countryKo) || "🏳️";
+// ✅ (공통) 출력용 기간/요일 기본값: 한국 기준
+let displayStartISO = startDay;
+let displayEndISO   = endDay;
+let displayWeekday  = weekday;
 
-      const firstClassISO = findFirstClassDateKST(startDay, endDay, weekday);
-      if(!firstClassISO){
-        return { ok:false, error:"시작~종료 기간 안에 선택한 요일의 첫 수업일을 찾지 못했습니다. 날짜/요일을 확인해 주세요." };
-      }
-      if(!tz){
-        return { ok:false, error:"해외 수강생은 시간대 설정이 필요합니다. (시간대 선택/검색)" };
-      }
+let dispStartW = WEEKDAY_KO[toDateLocal(displayStartISO).getDay()];
+let dispEndW   = WEEKDAY_KO[toDateLocal(displayEndISO).getDay()];
 
-      const firstInstantKST = makeKoreaZonedDate(firstClassISO, parsed.hh, parsed.mm);
-      const localFirst = formatInTimeZone(firstInstantKST, tz);
+// [시차 없는 경우] = 국내(한국)
+if (studentLocation === "DOMESTIC") {
+  timeLine = `• 수업 시간: ${amPm} ${korTimeDisplay} (${duration} 수업)\n`;
+} else {
+  const countryKo = $("countryInput").value.trim();
+  const tz = $("tzSelect").value || "";
+  const customFlag = $("customFlag").value.trim();
+  const flag = customFlag || flagFromCountryKo(countryKo) || "🏳️";
 
-      // 기간 중 DST 변곡 수업일(첫 발생) 찾기
-      const dstShift = findDstShiftFirstClass({
+  const firstClassISO = findFirstClassDateKST(startDay, endDay, weekday);
+  if(!firstClassISO){
+    return { ok:false, error:"시작~종료 기간 안에 선택한 요일의 첫 수업일을 찾지 못했습니다. 날짜/요일을 확인해 주세요." };
+  }
+  if(!tz){
+    return { ok:false, error:"해외 수강생은 시간대 설정이 필요합니다. (시간대 선택/검색)" };
+  }
+
+  const firstInstantKST = makeKoreaZonedDate(firstClassISO, parsed.hh, parsed.mm);
+  const localFirst = formatInTimeZone(firstInstantKST, tz);
+  const kstFirst   = formatInTimeZone(firstInstantKST, "Asia/Seoul");
+
+  // ✅ (예외 처리) 현지 요일이 한국 "실제 첫 수업 요일"과 다를 때만, 기간/요일을 현지 기준으로 정정
+//    (같으면 그대로 둠)
+const dayNumKo = { "일":0, "월":1, "화":2, "수":3, "목":4, "금":5, "토":6 };
+
+const localD = dayNumKo[localFirst.weekday];
+const kstD   = dayNumKo[kstFirst.weekday]; // ✅ 한국 실제 첫 수업 요일 기준
+
+let diffDays = localD - kstD;
+if (diffDays > 3) diffDays -= 7;
+if (diffDays < -3) diffDays += 7;
+
+// ✅ 요일이 다를 때만 변경
+if (diffDays !== 0) {
+  displayStartISO = dateToISO_Local(addDays(toDateLocal(startDay), diffDays));
+displayEndISO   = dateToISO_Local(addDays(toDateLocal(endDay), diffDays));
+
+  displayWeekday  = localFirst.weekday;
+
+  dispStartW = WEEKDAY_KO[toDateLocal(displayStartISO).getDay()];
+  dispEndW   = WEEKDAY_KO[toDateLocal(displayEndISO).getDay()];
+}
+
+
+
+
+
+  // ✅ 요일 표기 규칙: "현지 요일 ≠ 한국 실제 요일"일 때만 표시
+  const showWeekday = (localFirst.weekday !== kstFirst.weekday);
+
+  // ✅ DST 전환(시작/종료) 탐지
+  const transitions = findDstTransitionsBetween(startDay, endDay, tz);
+
+  // ✅ 강사만 시간 변경(현지 고정)일 때, 한국시간 변화 메모(START 기준) 생성
+  let kstAfterNote = "";
+  if (dstMode === "TEACHER_CHANGE") {
+    const firstStart = transitions.find(t => t.kind === "START");
+    if (firstStart) {
+      const nextClassForNote = findNextClassAfterTransition({
         startISO: startDay,
         endISO: endDay,
         weekdayKo: weekday,
         kstTime24: parsed,
-        targetTz: tz
+        transitionInstantUtc: firstStart.instantUtc
       });
 
-      const hasDstShift = !!dstShift;
-      const shouldExplainShift = hasDstShift && (dstMode === "STUDENT_CHANGE" || dstMode === "TEACHER_CHANGE");
-
-      // 기본 블록 (썸머타임 없거나 / AUTO 모드)
-      // 요청 포맷:
-      // • 수업 시간:
-      // 🇨🇦 금요일 오후 4시
-      // 🇰🇷 토요일 오전 9시 (1시간 수업)
-      // ※ “시차 없는 경우”는 국내에서 처리
-      if(dstMode === "TEACHER_CHANGE" && shouldExplainShift){
-        // 예시 요구: (강사만 바뀌는 경우) → duration은 현지 줄에, 한국 줄에는 변경 후 시간만 표시
-        timeLine =
-`• 수업 시간:
-${formatTimeLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time, ` (${duration} 수업)`)}
-${formatTimeLine("🇰🇷", weekday, amPm, korTimeDisplay, "")}
-`;
-      } else {
-        // 일반(없음/학생변경/자동): duration은 한국 줄 끝에
-        timeLine =
-`• 수업 시간:
-${formatTimeLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time, "")}
-${formatTimeLine("🇰🇷", weekday, amPm, korTimeDisplay, ` (${duration} 수업)`)}
-`;
-      }
-
-      // DST 변곡점 안내 문구
-      if(shouldExplainShift){
-        const shiftISO = dstShift.iso;
-        const shiftDate = toDateLocal(shiftISO);
-        const m = shiftDate.getMonth() + 1;
-        const d = shiftDate.getDate();
-
-        const shiftInstantKST_sameClock = makeKoreaZonedDate(shiftISO, parsed.hh, parsed.mm);
-        const localAfter = formatInTimeZone(shiftInstantKST_sameClock, tz);
-
-        // “3/13(금)”의 요일 표기는 현지 요일로 맞추는 게 자연스러움
-        const localWeekdayOnShift = localAfter.weekday;
-
-        // diffMinutes: newOffset - baseOffset
-        // 예: 뉴욕 DST 시작 → offset -300 -> -240 => diff +60 (현지 시간이 +1시간 늦게 표시됨)
-        const diffMin = dstShift.diffMinutes;
-
-        if(dstMode === "STUDENT_CHANGE"){
-          // 요청 포맷:
-          // *썸머타임 시작 후 ⬇️
-          // 3/13(금)부터 🇨🇦 오후 5시로 진행됩니다.
-          // (🇰🇷 토 오전 9시)
-          timeLine +=
-`\n*썸머타임 시작 후 ⬇️
-${m}/${d}(${localWeekdayOnShift})부터 ${flag} ${localAfter.amPm} ${localAfter.time}로 진행됩니다.
-(🇰🇷 ${weekday} ${amPm} ${korTimeDisplay})
-`;
-        }
-
-        if(dstMode === "TEACHER_CHANGE"){
-          // “강사만 바뀜” = 현지 시간을 동일하게 유지하려면
-          // DST 시작 후 한국 시간은 (현지 변화량)만큼 반대로 이동
-          // newKSTInstant = shiftInstantKST_sameClock - diffMin
-          const newKstInstant = new Date(shiftInstantKST_sameClock.getTime() - diffMin * 60000);
-          const koreaAfter = formatInTimeZone(newKstInstant, "Asia/Seoul");
-
-          // 요청 예시 형태(한 줄):
-          // 🇰🇷 월요일 오전 9시 (썸머타임 시작 후 > 한국 오전 8시)
-          // -> “썸머타임 시작 후 > 한국 {koreaAfter.amPm} {koreaAfter.time}”
-          // -> koreaAfter.weekday는 변할 수 있으므로 함께 표기(안전). 사용자가 원하면 요일 제거도 가능.
-          // 여기서는 기존 “🇰🇷 {weekday}요일 ...”을 유지하고, 변곡 후 시간만 안내.
-          timeLine = timeLine.trimEnd() + ` (썸머타임 시작 후 > 한국 ${koreaAfter.amPm} ${koreaAfter.time})\n`;
-        }
+      if (nextClassForNote) {
+        const adjustedInstant = new Date(
+          nextClassForNote.classInstantKST.getTime() - firstStart.diffMinutes * 60000
+        );
+        const kstAdjusted = formatInTimeZone(adjustedInstant, "Asia/Seoul");
+        kstAfterNote = ` (썸머타임 시작 후 > 한국 ${kstAdjusted.amPm} ${kstAdjusted.time})`;
       }
     }
+  }
+
+  // ✅ 수업 시간 기본 라인 생성
+  if (dstMode === "TEACHER_CHANGE") {
+    timeLine =
+`• 수업 시간:
+${formatTimeLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time, ` (${duration} 수업)`, showWeekday)}
+${formatTimeLine("🇰🇷", kstFirst.weekday, kstFirst.amPm, kstFirst.time, kstAfterNote, showWeekday)}
+`;
+  } else {
+    timeLine =
+`• 수업 시간:
+${formatTimeLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time, "", showWeekday)}
+${formatTimeLine("🇰🇷", weekday, amPm, korTimeDisplay, ` (${duration} 수업)`, showWeekday)}
+`;
+  }
+
+  // ✅ 안내 출력 여부: STUDENT_CHANGE만 DST 안내문 추가
+  const shouldExplain = (dstMode === "STUDENT_CHANGE");
+
+  if (shouldExplain && transitions.length) {
+    for (const tr of transitions) {
+      const nextClass = findNextClassAfterTransition({
+        startISO: startDay,
+        endISO: endDay,
+        weekdayKo: weekday,
+        kstTime24: parsed,
+        transitionInstantUtc: tr.instantUtc
+      });
+      if (!nextClass) continue;
+
+      const localOnNext = formatInTimeZone(nextClass.classInstantKST, tz);
+      const localISO_next = getLocalISODate(nextClass.classInstantKST, tz);
+
+      let dLocal = toDateLocal(localISO_next);
+      const wFromISO = WEEKDAY_KO[dLocal.getDay()];
+      if (wFromISO !== localOnNext.weekday) dLocal = addDays(dLocal, 1);
+      dLocal = addDays(dLocal, 1); // ✅ 의도한 +1일 유지
+
+      const md = `${dLocal.getMonth()+1}/${dLocal.getDate()}`;
+      const wLocal = WEEKDAY_KO[dLocal.getDay()];
+
+      // ✅ (사용자 방식 유지) DST 안내 괄호에서 한국 요일 표기 여부
+      const showWeekdayNext = (wLocal !== weekday);
+
+      const title = (tr.kind === "START") ? "*썸머타임 시작 후 ⬇️" : "*썸머타임 종료 후 ⬇️";
+
+      timeLine +=
+`\n${title}
+${md}(${wLocal})부터 ${flag} ${localOnNext.amPm} ${localOnNext.time}로 진행됩니다.
+(${showWeekdayNext ? `🇰🇷 ${weekday} ${amPm} ${korTimeDisplay}` : `🇰🇷 ${amPm} ${korTimeDisplay}`})
+`;
+    }
+  }
+}
+// ← 해외 수강생(시간대) 분기 종료
+
+
+
 
     const msg =
 `안녕하세요! 😊
@@ -1129,8 +1296,8 @@ ${namePrefix}어피니티 유니버스 클래스 일정 안내드립니다.
 ━━━━━━━━━━━━━━
 
 🗓️ 클래스 일정 안내
-• 수업 기간: ${formatMD(startDay)}(${startW}) ~ ${formatMD(endDay)}(${endW})
-${closedBlock}• 수업 요일: 매주 ${weekday}요일
+• 수업 기간: ${formatMD(displayStartISO)}(${dispStartW}) ~ ${formatMD(displayEndISO)}(${dispEndW})
+${closedBlock}• 수업 요일: 매주 ${displayWeekday}요일
 ${timeLine}
 ${(curriculumName === CUSTOM_COURSE_LABEL)
         ? `1:1 ${$("customCourseName").value.trim()} 클래스는
