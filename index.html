@@ -124,33 +124,38 @@
   <section class="card">
     <h2>입력</h2>
 
-    <div class="row">
+    <div class="row3">
       <div>
         <label for="studentName">이름 입력(필수)</label>
         <input id="studentName" type="text" placeholder="예: 민지" />
-      </div>
-      <div>
-        <label for="enrollType">신규 / 연장</label>
-        <select id="enrollType">
-          <option value="NEW">신규</option>
-          <option value="RENEW">연장</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row">
-      <div>
-        <label for="familyType">외동 / 형제</label>
-        <select id="familyType">
-          <option value="ONLY">외동</option>
-          <option value="SIBLINGS">형제</option>
-        </select>
       </div>
       <div>
         <label for="classType">1:1 / 그룹</label>
         <select id="classType">
           <option value="ONE_ON_ONE">1:1</option>
           <option value="GROUP">그룹</option>
+        </select>
+      </div>
+      <div>
+        <label for="channelName">채널명</label>
+        <select id="channelName">
+          <option value="">선택 안 함</option>
+          <option value="MON (월)">MON (월)</option>
+          <option value="TUE (화)">TUE (화)</option>
+          <option value="WED (수)">WED (수)</option>
+          <option value="THUR (목)">THUR (목)</option>
+          <option value="FRI (금)">FRI (금)</option>
+          <option value="SAT (토)">SAT (토)</option>
+          <option value="AFTER CARE">AFTER CARE</option>
+          <option value="DIPLOMA">DIPLOMA</option>
+          <option value="🐰 ART BOOK SION(시온쌤)">🐰 ART BOOK SION(시온쌤)</option>
+          <option value="🐶 ART BOOK ONYU(온유쌤)">🐶 ART BOOK ONYU(온유쌤)</option>
+          <option value="🐱 ART BOOK DESIGN">🐱 ART BOOK DESIGN</option>
+          <option value="🥕 PICTURE BOOK">🥕 PICTURE BOOK</option>
+          <option value="🍰 PICTURE BOOK">🍰 PICTURE BOOK</option>
+          <option value="😎 DRAWING BASIC SHU(슈쌤)">😎 DRAWING BASIC SHU(슈쌤)</option>
+          <option value="💖 GOODS DESIGN">💖 GOODS DESIGN</option>
+          <option value="💙 DRAWING BASIC AYEONG(아영쌤)">💙 DRAWING BASIC AYEONG(아영쌤)</option>
         </select>
       </div>
     </div>
@@ -203,7 +208,7 @@
           <option value="STUDENT_CHANGE">썸머타임 때 수강생 시간 변경</option>
           <option value="TEACHER_CHANGE">썸머타임 때 강사만 바뀜</option>
         </select>
-        <div class="note small">※ 계산은 자동 반영됩니다. 옵션에 따라 “변곡점 안내 문구”를 출력합니다.</div>
+        <div class="note small">※ 해외일 때는 🇰🇷도 반드시 “같은 수업 순간(instant)” 기준으로 계산되어 요일/시간이 정상 출력됩니다.</div>
       </div>
     </div>
 
@@ -238,6 +243,22 @@
           <div>
             <label for="usTzHint">미국 내부 시차 안내</label>
             <input id="usTzHint" type="text" readonly value="주 선택 → 시간대 자동/추천" />
+          </div>
+        </div>
+      </div>
+
+      <div id="auStateBox" style="display:none">
+        <div class="row">
+          <div>
+            <label for="auStateSelect">호주 주/지역 선택</label>
+            <select id="auStateSelect"></select>
+            <div class="note small">
+              호주는 주/지역별로 서머타임 적용 여부가 달라 시간대가 다릅니다.
+            </div>
+          </div>
+          <div>
+            <label for="auTzHint">호주 안내</label>
+            <input id="auTzHint" type="text" readonly value="주/지역 선택 → 시간대 자동 설정" />
           </div>
         </div>
       </div>
@@ -328,10 +349,6 @@
 
     <div class="divider"></div>
 
-    <h2 style="margin-top:0">보강 일정(선택)</h2>
-    <div class="note small">※ 초반 보강 일정이 있는 경우만 작성하세요. 예시:<br/>🇺🇸 03. 02(목) 7 PM<br/>🇰🇷 03. 03(금) 12 PM</div>
-    <textarea id="makeupSchedule" class="mono" style="min-height:140px" placeholder="예:&#10;🇺🇸 03. 02(목) 7 PM&#10;🇰🇷 03. 03(금) 12 PM"></textarea>
-
     <h2 style="margin-top:0">커리큘럼</h2>
     <div class="row">
       <div>
@@ -374,7 +391,9 @@
     <h2>최종 안내 문구</h2>
     <textarea id="output" class="mono" placeholder="왼쪽에서 입력 후 [최종 문구 생성]을 누르면 여기에 표시됩니다."></textarea>
     <div class="note">
-      DST(썸머타임) 변곡점이 수업 기간 중 존재하면, “첫 변곡 수업일”부터 변경 내용을 자동 안내합니다.
+      해외 AUTO도 반드시 아래 형식으로 출력됩니다:<br/>
+      🇦🇺 (월) 11 AM<br/>
+      🇰🇷 (월) 9 AM
     </div>
   </section>
 </main>
@@ -436,49 +455,16 @@
   ];
 
   const CUSTOM_COURSE_LABEL = "커스텀 코스(개별 맞춤)";
-  const BRANDING_COURSE_LABEL = "1:1 브랜딩 코스";
-
-  /*********************
-   * 캡컷 블록
-   *********************/
-  const CAPCUT_BLOCK =
-`📌 강의 사전 준비 안내
-(⚠️ 캡컷 프로 결제 필수 월 19,800원)
-
-🔎 촬영 전 준비
-
-촬영 전, 카메라 렌즈를 천으로 꼭 한 번 닦아주세요.
-지문이 묻으면 영상이 뿌옇게 나오거나 빛번짐 현상이 생길 수 있습니다.
-
-🎥 영상·사진 촬영 가이드
-
-1. 촬영 비율
-- 릴스/쇼츠: 세로 촬영
-- 유튜브: 가로 촬영
-사진·영상이 많을수록 편집 완성도가 높습니다
-
-2. 영상 촬영 팁
-- 카메라는 천천히 움직일 것
-- 갑작스러운 휙 움직임은 피할 것
-- 멈춰서 촬영하거나, 천천히 이동하며 촬영
-
-3. 사진 촬영 팁
-- 인물이 깔끔하게 나온 전체 샷 위주로 준비
-
-━━━━━━━━━━━━━━
-
-`;
 
   /*********************
    * 국가 기본 DB (추천 시간대)
-   * - 국가별 DST는 하드코딩하지 않음: Intl offset 변화로 자동 감지
    *********************/
   const COUNTRY_DB = [
     { ko:"미국", flag:"🇺🇸", tz:["America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Phoenix","America/Anchorage","Pacific/Honolulu"] },
     { ko:"캐나다", flag:"🇨🇦", tz:["America/Toronto","America/Vancouver","America/Edmonton","America/Winnipeg","America/Halifax","America/St_Johns"] },
     { ko:"멕시코", flag:"🇲🇽", tz:["America/Mexico_City","America/Tijuana","America/Cancun"] },
     { ko:"브라질", flag:"🇧🇷", tz:["America/Sao_Paulo","America/Manaus","America/Recife"] },
-    { ko:"호주", flag:"🇦🇺", tz:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Perth","Australia/Hobart"] },
+    { ko:"호주", flag:"🇦🇺", tz:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Perth","Australia/Hobart","Australia/Darwin"] },
     { ko:"인도네시아", flag:"🇮🇩", tz:["Asia/Jakarta","Asia/Makassar","Asia/Jayapura"] },
     { ko:"러시아", flag:"🇷🇺", tz:["Europe/Moscow","Asia/Yekaterinburg","Asia/Novosibirsk","Asia/Vladivostok","Asia/Kamchatka"] },
     { ko:"뉴질랜드", flag:"🇳🇿", tz:["Pacific/Auckland"] },
@@ -553,6 +539,20 @@
     { name:"Wyoming", ko:"와이오밍", tzOptions:["America/Denver"] },
   ];
 
+  /*********************
+   * 호주 주/지역 (DST 적용/미적용 안내용)
+   *********************/
+  const AU_REGIONS = [
+    { code:"NSW", ko:"뉴사우스웨일스", city:"시드니", tzOptions:["Australia/Sydney"], dstLikely:true },
+    { code:"VIC", ko:"빅토리아", city:"멜버른", tzOptions:["Australia/Melbourne"], dstLikely:true },
+    { code:"ACT", ko:"수도특별구", city:"캔버라", tzOptions:["Australia/Sydney"], dstLikely:true },
+    { code:"TAS", ko:"태즈매니아", city:"호바트", tzOptions:["Australia/Hobart"], dstLikely:true },
+    { code:"SA",  ko:"남호주", city:"애들레이드", tzOptions:["Australia/Adelaide"], dstLikely:true },
+    { code:"QLD", ko:"퀸즐랜드", city:"브리즈번", tzOptions:["Australia/Brisbane"], dstLikely:false },
+    { code:"NT",  ko:"노던테리토리", city:"다윈", tzOptions:["Australia/Darwin"], dstLikely:false },
+    { code:"WA",  ko:"서호주", city:"퍼스", tzOptions:["Australia/Perth"], dstLikely:false },
+  ];
+
   const ALL_TZ = (Intl && Intl.supportedValuesOf) ? Intl.supportedValuesOf("timeZone") : [];
 
   /*********************
@@ -560,6 +560,7 @@
    *********************/
   const $ = (id) => document.getElementById(id);
   const WEEKDAY_KO = ["일","월","화","수","목","금","토"];
+  const WEEKDAY_LONG = { "일":"일요일","월":"월요일","화":"화요일","수":"수요일","목":"목요일","금":"금요일","토":"토요일" };
   const WEEKDAY_TO_NUM = { "일":0,"월":1,"화":2,"수":3,"목":4,"금":5,"토":6 };
 
   function showAlert(msg, kind){
@@ -588,35 +589,69 @@
     return { hh, mm };
   }
 
-  // isoDate(YYYY-MM-DD)의 "한국 로컬 시간(hh24:mm)"을 UTC instant(Date)로 만든다.
+  function toDateUTC(iso){
+    const [y,m,d] = (iso || "").split("-").map(Number);
+    return new Date(Date.UTC(y, (m||1)-1, d||1, 0,0,0,0));
+  }
+  function addDaysUTC(dateObj, days){
+    const d = new Date(dateObj.getTime());
+    d.setUTCDate(d.getUTCDate() + days);
+    return d;
+  }
+  function dateToISO_UTC(d){
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth()+1).padStart(2,"0");
+    const day = String(d.getUTCDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  function formatMD(iso){
+    const d = toDateUTC(iso);
+    const m = String(d.getUTCMonth()+1).padStart(2,"0");
+    const day = String(d.getUTCDate()).padStart(2,"0");
+    return `${m}/${day}`;
+  }
+  function getWeekdayKoFromISO(iso){
+    const d = toDateUTC(iso);
+    return WEEKDAY_KO[d.getUTCDay()];
+  }
+
   function makeKoreaZonedDate(isoDate, hh24, mm){
     const [y,mo,d] = isoDate.split("-").map(Number);
     const utcMillis = Date.UTC(y, mo-1, d, hh24 - 9, mm, 0, 0);
     return new Date(utcMillis);
   }
 
-  function toDateLocal(iso){ return new Date(iso + "T00:00:00"); }
-  function addDays(dateObj, days){ const d = new Date(dateObj); d.setDate(d.getDate()+days); return d; }
+  function formatInTimeZone(dateObj, timeZone){
+    const weekday = new Intl.DateTimeFormat("ko-KR", { timeZone, weekday:"long" }).format(dateObj);
 
-  function findFirstClassDateKST(startISO, endISO, targetWeekdayKo){
-    const start = toDateLocal(startISO);
-    const end = toDateLocal(endISO);
-    if(isNaN(start) || isNaN(end)) return null;
+    const parts = new Intl.DateTimeFormat("ko-KR", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).formatToParts(dateObj);
 
-    const target = WEEKDAY_TO_NUM[targetWeekdayKo];
-    if(target === undefined) return null;
+    const hh = Number(parts.find(p => p.type === "hour")?.value ?? "0");
+    const mm = Number(parts.find(p => p.type === "minute")?.value ?? "0");
+    const amPm = (hh < 12) ? "오전" : "오후";
 
-    const startW = start.getDay();
-    let delta = target - startW;
-    if(delta < 0) delta += 7;
+    let h12 = hh % 12;
+    if(h12 === 0) h12 = 12;
 
-    const first = addDays(start, delta);
-    if(first > end) return null;
+    const time = (mm === 0) ? `${h12}시` : `${h12}:${String(mm).padStart(2,"0")}`;
+    return { weekday, amPm, time };
+  }
 
-    const y = first.getFullYear();
-    const m = String(first.getMonth()+1).padStart(2,"0");
-    const d = String(first.getDate()).padStart(2,"0");
-    return `${y}-${m}-${d}`;
+  function koAmPmToEN(ko){ return ko === "오전" ? "AM" : "PM"; }
+  function stripSi(t){ return (t || "").toString().replace(/시$/,""); }
+  function weekdayLongToShortParen(weekdayLongKo){
+    const w = (weekdayLongKo || "").toString().trim();
+    return w ? `(${w[0]})` : "";
+  }
+  function formatShortLine(flag, weekdayLongKo, amPmKo, timeKo){
+    const w = weekdayLongToShortParen(weekdayLongKo);
+    const t = `${stripSi(timeKo)} ${koAmPmToEN(amPmKo)}`.trim();
+    return `${flag} ${w} ${t}`.replace(/\s+/g," ").trim();
   }
 
   function setSelectOptions(selectEl, options, placeholder){
@@ -641,7 +676,6 @@
     return found?.flag || "";
   }
 
-  // ✅ 특정 Date + timeZone의 UTC offset(분) 구하기
   function getUtcOffsetMinutes(date, timeZone){
     const fmt = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -664,41 +698,6 @@
     return (asUTC - date.getTime()) / 60000;
   }
 
-  // ✅ 수업 기간 중 "수업일(주 1회)" 기준으로 offset 변화가 처음 생기는 날 찾기
-  function findDstShiftFirstClass({
-    startISO, endISO, weekdayKo, kstTime24, targetTz
-  }){
-    const start = toDateLocal(startISO);
-    const end = toDateLocal(endISO);
-    const targetDay = WEEKDAY_TO_NUM[weekdayKo];
-    if(targetDay === undefined) return null;
-
-    let cur = new Date(start);
-    while(cur.getDay() !== targetDay) cur.setDate(cur.getDate() + 1);
-    if(cur > end) return null;
-
-    const baseISO = cur.toISOString().slice(0,10);
-    const baseInstantKST = makeKoreaZonedDate(baseISO, kstTime24.hh, kstTime24.mm);
-    const baseOffset = getUtcOffsetMinutes(baseInstantKST, targetTz);
-
-    while(cur <= end){
-      const iso = cur.toISOString().slice(0,10);
-      const inst = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm);
-      const off = getUtcOffsetMinutes(inst, targetTz);
-      if(off !== baseOffset){
-        return {
-          iso,
-          diffMinutes: off - baseOffset,
-          baseOffset,
-          newOffset: off,
-        };
-      }
-      cur.setDate(cur.getDate() + 7);
-    }
-    return null;
-  }
-
-  // timeZone에서 dateObj의 "로컬 YYYY-MM-DD" 문자열 얻기
   function getLocalISODate(dateObj, timeZone){
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone,
@@ -714,29 +713,25 @@
   function findOffsetChangeInstant(prevDateUtc, nextDateUtc, timeZone, prevOffset){
     let lo = prevDateUtc.getTime();
     let hi = nextDateUtc.getTime();
-
     while(hi - lo > 60 * 1000){
       const mid = lo + Math.floor((hi - lo) / 2);
       const off = getUtcOffsetMinutes(new Date(mid), timeZone);
-      if(off === prevOffset){
-        lo = mid + 1;
-      }else{
-        hi = mid;
-      }
+      if(off === prevOffset) lo = mid + 1;
+      else hi = mid;
     }
     return new Date(hi);
   }
 
   function findDstTransitionsBetween(startISO, endISO, timeZone){
-    const start = toDateLocal(startISO);
-    const end = toDateLocal(endISO);
+    const start = toDateUTC(startISO);
+    const end = toDateUTC(endISO);
     if(isNaN(start) || isNaN(end)) return [];
 
-    const scanStart = addDays(start, -1);
-    const scanEnd = addDays(end, +1);
+    const scanStart = addDaysUTC(start, -1);
+    const scanEnd = addDaysUTC(end, +1);
 
-    let cur = new Date(Date.UTC(scanStart.getFullYear(), scanStart.getMonth(), scanStart.getDate(), 12, 0, 0));
-    const endUtc = new Date(Date.UTC(scanEnd.getFullYear(), scanEnd.getMonth(), scanEnd.getDate(), 12, 0, 0));
+    let cur = new Date(Date.UTC(scanStart.getUTCFullYear(), scanStart.getUTCMonth(), scanStart.getUTCDate(), 12, 0, 0));
+    const endUtc = new Date(Date.UTC(scanEnd.getUTCFullYear(), scanEnd.getUTCMonth(), scanEnd.getUTCDate(), 12, 0, 0));
 
     let prevOffset = getUtcOffsetMinutes(cur, timeZone);
     let prevDateUtc = new Date(cur);
@@ -750,17 +745,7 @@
         const instantUtc = findOffsetChangeInstant(prevDateUtc, cur, timeZone, prevOffset);
         const localISO = getLocalISODate(instantUtc, timeZone);
         const diffMinutes = off - prevOffset;
-        const kind = (diffMinutes > 0) ? "START" : "END";
-
-        transitions.push({
-          instantUtc,
-          localISO,
-          diffMinutes,
-          oldOffset: prevOffset,
-          newOffset: off,
-          kind
-        });
-
+        transitions.push({ instantUtc, localISO, diffMinutes });
         prevOffset = off;
       }
       prevDateUtc = new Date(cur);
@@ -769,27 +754,63 @@
     return transitions.filter(t => t.localISO >= startISO && t.localISO <= endISO);
   }
 
-  function findNextClassAfterTransition({
-    startISO, endISO, weekdayKo, kstTime24, transitionInstantUtc
-  }){
-    const start = toDateLocal(startISO);
-    const end = toDateLocal(endISO);
+  function findFirstClassDateKST(startISO, endISO, targetWeekdayKo){
+    const start = toDateUTC(startISO);
+    const end = toDateUTC(endISO);
+    if(isNaN(start) || isNaN(end)) return null;
+
+    const target = WEEKDAY_TO_NUM[targetWeekdayKo];
+    if(target === undefined) return null;
+
+    const startW = start.getUTCDay();
+    let delta = target - startW;
+    if(delta < 0) delta += 7;
+
+    const first = addDaysUTC(start, delta);
+    if(first > end) return null;
+    return dateToISO_UTC(first);
+  }
+
+  function findNextClassAfterTransition({ startISO, endISO, weekdayKo, kstTime24, transitionInstantUtc }){
+    const start = toDateUTC(startISO);
+    const end = toDateUTC(endISO);
     const targetDay = WEEKDAY_TO_NUM[weekdayKo];
     if(targetDay === undefined) return null;
 
-    let cur = new Date(start);
-    while(cur.getDay() !== targetDay) cur.setDate(cur.getDate() + 1);
+    let cur = new Date(start.getTime());
+    while(cur.getUTCDay() !== targetDay) cur = addDaysUTC(cur, 1);
     if(cur > end) return null;
 
     while(cur <= end){
-      const iso = cur.toISOString().slice(0,10);
+      const iso = dateToISO_UTC(cur);
       const classInstantKST = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm);
       if(classInstantKST.getTime() > transitionInstantUtc.getTime()){
         return { isoKST: iso, classInstantKST };
       }
-      cur.setDate(cur.getDate() + 7);
+      cur = addDaysUTC(cur, 7);
     }
     return null;
+  }
+
+  function findPrevClassOnOrBeforeTransition({ startISO, endISO, weekdayKo, kstTime24, transitionInstantUtc }){
+    const start = toDateUTC(startISO);
+    const end = toDateUTC(endISO);
+    const targetDay = WEEKDAY_TO_NUM[weekdayKo];
+    if(targetDay === undefined) return null;
+
+    let cur = new Date(start.getTime());
+    while(cur.getUTCDay() !== targetDay) cur = addDaysUTC(cur, 1);
+    if(cur > end) return null;
+
+    let prev = null;
+    while(cur <= end){
+      const iso = dateToISO_UTC(cur);
+      const classInstantKST = makeKoreaZonedDate(iso, kstTime24.hh, kstTime24.mm);
+      if(classInstantKST.getTime() > transitionInstantUtc.getTime()) break;
+      prev = { isoKST: iso, classInstantKST };
+      cur = addDaysUTC(cur, 7);
+    }
+    return prev;
   }
 
   /*********************
@@ -806,9 +827,9 @@
     }
     const sorted = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
     const lines = sorted.map((x, i) => {
-      const d = toDateLocal(x.date);
-      const m = d.getMonth()+1, day = d.getDate();
-      const w = WEEKDAY_KO[d.getDay()];
+      const w = getWeekdayKoFromISO(x.date);
+      const d = toDateUTC(x.date);
+      const m = d.getUTCMonth()+1, day = d.getUTCDate();
       const nm = x.name ? `(${x.name})` : "";
       return `${i+1}) ${m}/${day}(${w})${nm}`;
     });
@@ -829,11 +850,11 @@
    * 한국 공휴일 API (Nager.Date)
    *********************/
   async function fetchKoreanHolidaysBetween(startISO, endISO){
-    const start = toDateLocal(startISO);
-    const end = toDateLocal(endISO);
+    const start = toDateUTC(startISO);
+    const end = toDateUTC(endISO);
     if(isNaN(start) || isNaN(end)) throw new Error("날짜가 올바르지 않습니다.");
 
-    const years = new Set([start.getFullYear(), end.getFullYear()]);
+    const years = new Set([start.getUTCFullYear(), end.getUTCFullYear()]);
     const all = [];
 
     for(const y of years){
@@ -856,9 +877,9 @@
     }
     box.className = "list small";
     box.innerHTML = fetchedHolidays.map((h, i)=>{
-      const d = toDateLocal(h.date);
-      const m = d.getMonth()+1, day = d.getDate();
-      const w = WEEKDAY_KO[d.getDay()];
+      const w = getWeekdayKoFromISO(h.date);
+      const d = toDateUTC(h.date);
+      const m = d.getUTCMonth()+1, day = d.getUTCDate();
       const label = `${m}/${day}(${w}) - ${h.localName || h.name || "공휴일"}`;
       return `
         <div class="checkboxRow">
@@ -870,7 +891,7 @@
   }
 
   /*********************
-   * 커리큘럼 / 국가 / 미국 주 초기화
+   * 커리큘럼 / 국가 / 미국 주 / 호주 주 초기화
    *********************/
   function initCurriculumSelect(){
     const sel = $("curriculumSelect");
@@ -920,6 +941,22 @@
     });
   }
 
+  function initAuStateSelect(){
+    const sel = $("auStateSelect");
+    sel.innerHTML = "";
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "주/지역 선택";
+    sel.appendChild(opt0);
+
+    AU_REGIONS.forEach(r=>{
+      const opt = document.createElement("option");
+      opt.value = r.code;
+      opt.textContent = `${r.ko} (${r.code}) - ${r.city}`;
+      sel.appendChild(opt);
+    });
+  }
+
   function applyCountryToTzOptions(countryKo){
     const found = COUNTRY_DB.find(c => c.ko === (countryKo||"").trim());
     if(!found){
@@ -933,11 +970,24 @@
   function applyUSStateToTzOptions(stateName){
     const s = US_STATES.find(x => x.name === stateName);
     if(!s){
-      setSelectOptions($("tzSelect"), ["America/New_York","America/Chicago","America/Denver","America/Los_Angeles"], "시간대 선택");
+      applyCountryToTzOptions("미국");
       return;
     }
     setSelectOptions($("tzSelect"), s.tzOptions, s.tzOptions.length > 1 ? "시간대(주 내부 분할)" : "시간대");
     if(s.tzOptions.length > 0) $("tzSelect").value = s.tzOptions[0];
+  }
+
+  function applyAURegionToTzOptions(regionCode){
+    const r = AU_REGIONS.find(x => x.code === regionCode);
+    if(!r){
+      applyCountryToTzOptions("호주");
+      $("auTzHint").value = "주/지역 선택 → 시간대 자동 설정";
+      return;
+    }
+    setSelectOptions($("tzSelect"), r.tzOptions, "시간대");
+    if(r.tzOptions.length > 0) $("tzSelect").value = r.tzOptions[0];
+
+    $("auTzHint").value = r.dstLikely ? "이 지역은 서머타임 적용 가능" : "이 지역은 서머타임 미적용";
   }
 
   /*********************
@@ -976,135 +1026,120 @@
 
     try{
       const kstInstant = makeKoreaZonedDate(firstClassISO, parsed.hh, parsed.mm);
-      const wd = new Intl.DateTimeFormat("ko-KR", { timeZone: tz, weekday:"short" }).format(kstInstant);
-      const timeParts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour:"numeric", minute:"2-digit", hour12:true }).formatToParts(kstInstant);
-      const h = timeParts.find(p=>p.type==="hour")?.value || "0";
-      const m = timeParts.find(p=>p.type==="minute")?.value || "00";
-      const ap = (timeParts.find(p=>p.type==="dayPeriod")?.value || "").toUpperCase();
-      const t = (m === "00") ? `${h} ${ap}` : `${h}:${m} ${ap}`;
-      $("localPreviewPill").textContent = `현지시간 미리보기: (${wd}) ${t}`;
+      const local = formatInTimeZone(kstInstant, tz);
+      $("localPreviewPill").textContent = `현지시간 미리보기: ${formatShortLine("🌐", local.weekday, local.amPm, local.time).replace("🌐 ","")}`;
     }catch(e){
       $("localPreviewPill").textContent = "현지시간 미리보기: 계산 실패(시간대 확인)";
     }
   }
 
   /*********************
-   * 최종 메시지 생성 (템플릿: 안내메시지.html "최종 안내 문구"용)
+   * 커리큘럼별 추가 안내 문구
+   *********************/
+  function getAdditionalGuideText(curriculumName){
+    const drawingCourses = [
+      "디지털 드로잉 베이직",
+      "디지털 드로잉 프로",
+      "디지털 드로잉 북"
+    ];
+
+    if(curriculumName === "비디오 베이직" || curriculumName === "비디오 프로"){
+      return `[CapCut 사전 안내]
+• Cap Cut Pro 구독 필수 (월 19,800원)
+
+[촬영 가이드]
+Step 1. 렌즈 클리닝
+• 선명한 결과물을 위해 촬영 전, 부드러운 천으로 카메라 렌즈를 닦아주세요.
+• 지문으로 인한 빛 번짐과 흐릿함을 방지할 수 있습니다.
+
+Step 2. 촬영 비율
+• 릴스/쇼츠: 세로형
+• 유튜브: 가로형
+
+Tip: 사진·영상이 많을수록 편집 완성도가 높아집니다.
+
+Step 3. 무빙 팁
+• 모든 촬영 움직임은 천천히, 부드럽게.
+• Still Cut: 고정된 상태에서 촬영하거나, 아주 천천히 이동하세요.
+• Focus: 급격한 시선(카메라) 이동은 피하는 것이 좋습니다.
+
+Step 4. 사진 구성
+• 인물이 명확하게 돋보이는 풀샷(Full Shot) 위주로 준비해 주세요.`;
+    }
+
+    if(drawingCourses.includes(curriculumName)){
+      return `[디지털 드로잉 수업 참여 안내]
+• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
+• 앱 다운로드 및 애플 펜슬 충전 필수 *(갤럭시탭인 경우) S펜 사전 준비
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    return "";
+  }
+
+  /*********************
+   * 최종 메시지 생성
    *********************/
   function buildMessage(){
-
-    // YYYY-MM-DD -> "YYYY. MM. DD"
-    function fmtYMD(iso){
-      const d = toDateLocal(iso);
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${y}. ${m}. ${day}`;
-    }
-
-    // YYYY-MM-DD -> "MM. DD"
-    function fmtMD(iso){
-      const d = toDateLocal(iso);
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${m}. ${day}`;
-    }
-
-    // Date + tz -> { wdKo:"월", time:"7 PM" or "7:30 PM" }
-    function formatTime12(dateObj, timeZone){
-      const wd = new Intl.DateTimeFormat("ko-KR", { timeZone, weekday:"short" }).format(dateObj); // "월"
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone,
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true
-      }).formatToParts(dateObj);
-
-      const hour = parts.find(p=>p.type==="hour")?.value || "0";
-      const minute = parts.find(p=>p.type==="minute")?.value || "00";
-      const dayPeriod = (parts.find(p=>p.type==="dayPeriod")?.value || "").toUpperCase(); // AM/PM
-
-      const t = (minute === "00") ? `${hour} ${dayPeriod}` : `${hour}:${minute} ${dayPeriod}`;
-      return { wdKo: wd, time: t };
-    }
-
-    function korInputToDisplay12(amPm, korTimeStr){
-      const parsed = parseKorTimeTo24h(amPm, korTimeStr);
-      if(!parsed) return null;
-      const hh = parsed.hh;
-      const mm = parsed.mm;
-
-      const dayPeriod = (hh < 12) ? "AM" : "PM";
-      let h12 = hh % 12;
-      if(h12 === 0) h12 = 12;
-
-      const t = (mm === 0) ? `${h12} ${dayPeriod}` : `${h12}:${String(mm).padStart(2,"0")} ${dayPeriod}`;
-      return { hh, mm, time: t };
-    }
-
     const studentName = $("studentName").value.trim();
-    const enrollType = $("enrollType").value;
-    const familyType = $("familyType").value;
     const classType = $("classType").value;
-
+    const channelName = $("channelName").value.trim();
     const startDay = $("startDay").value;
     const endDay = $("endDay").value;
     const weekday = $("weekday").value;
-
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
-
     const curriculumName = $("curriculumSelect").value;
     const curriculumUrl = $("curriculumUrl").value.trim();
-
+    const additionalGuideText = getAdditionalGuideText(curriculumName);
     const studentLocation = $("studentLocation").value;
     const dstMode = $("dstMode").value;
-
-    const makeupRaw = sanitizeText($("makeupSchedule")?.value || "").trim();
 
     if(!studentName) return { ok:false, error:"이름을 입력해 주세요." };
     if(!startDay) return { ok:false, error:"시작일을 선택해 주세요." };
     if(!endDay) return { ok:false, error:"종료일을 선택해 주세요." };
     if(!korTimeStr) return { ok:false, error:"한국시간을 입력해 주세요. (예: 7 또는 7:30)" };
 
-    const korDisp = korInputToDisplay12(amPm, korTimeStr);
-    if(!korDisp) return { ok:false, error:"한국시간 형식이 올바르지 않습니다. (예: 7 또는 7:30, 시간은 1~12)" };
+    const parsed = parseKorTimeTo24h(amPm, korTimeStr);
+    if(!parsed) return { ok:false, error:"한국시간 형식이 올바르지 않습니다. (예: 7 또는 7:30, 시간은 1~12)" };
 
-    // 수업 시간(분) 결정: 1:1=40분, 그룹=60분 (※ 기존 로직 유지)
-    let durationMin = (classType === "ONE_ON_ONE") ? 40 : 60;
+    const korTimeDisplay = (function(){
+      const m = korTimeStr.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+      if(!m) return korTimeStr;
+      const hh = Number(m[1]);
+      const mm = m[2] ? Number(m[2]) : 0;
+      return (mm === 0) ? `${hh}시` : `${hh}:${String(mm).padStart(2,"0")}`;
+    })();
 
-    // ✅ 예외: 1:1 브랜딩 코스는 60분 고정 (기존 로직 유지)
-    const isBrandingCourse = (curriculumName === BRANDING_COURSE_LABEL);
-    if(isBrandingCourse) durationMin = 60;
+    let duration = (classType === "ONE_ON_ONE") ? "40분" : "60분";
 
-    const durationText = `${durationMin}분`;
-
-    // ✅ [클래스 일정] 제목(형제 여부에 따라)
-    const scheduleTitle = (familyType === "SIBLINGS")
-      ? `[${studentName} 클래스 일정]`
-      : `[클래스 일정]`;
-
-    // ✅ 휴강 일정 라인(있을 때만)
     const sortedClosed = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
-    let closedLine = "";
+    let closedBlock = "";
     if(sortedClosed.length > 0){
       const items = sortedClosed.map(x=>{
-        const d = toDateLocal(x.date);
-        const w = WEEKDAY_KO[d.getDay()];
+        const w = getWeekdayKoFromISO(x.date);
         const nm = (x.name || "").trim();
-        const label = nm ? `${fmtMD(x.date)} (${w}, ${nm})` : `${fmtMD(x.date)} (${w})`;
-        return label;
+        return nm ? `${formatMD(x.date)}(${w}, ${nm})` : `${formatMD(x.date)}(${w})`;
       });
-      closedLine = `• 휴강 일정 : ${items.join(", ")}\n`;
+      closedBlock = `• 휴강 일정: ${items.join(", ")}\n`;
     }
 
-    // ✅ 수업 시간 블록 생성
-    let timeBlock = "";
+    let displayStartISO = startDay;
+    let displayEndISO = endDay;
+    if(displayStartISO > displayEndISO){
+      [displayStartISO, displayEndISO] = [displayEndISO, displayStartISO];
+    }
+    const dispStartW = getWeekdayKoFromISO(displayStartISO);
+    const dispEndW   = getWeekdayKoFromISO(displayEndISO);
+
+    const timeHeader = `• 수업 시간: 주 1회 (${duration} 수업) \n`;
+
+    let timeLine = "";
 
     if(studentLocation === "DOMESTIC"){
-      timeBlock =
-`• 수업 시간 : 주 1회 (${durationText})
-🇰🇷 (${weekday}) ${korDisp.time}
+      const kstLong = WEEKDAY_LONG[weekday];
+      timeLine =
+`${timeHeader}${formatShortLine("🇰🇷", kstLong, amPm, korTimeDisplay)}
 `;
     }else{
       const countryKo = $("countryInput").value.trim();
@@ -1116,113 +1151,123 @@
 
       const firstClassISO = findFirstClassDateKST(startDay, endDay, weekday);
       if(!firstClassISO){
-        return { ok:false, error:"시작~종료 기간 안에 선택한 요일의 첫 수업일을 찾지 못했습니다. 날짜/요일을 확인해 주세요." };
+        return { ok:false, error:"시작~종료 기간 안에 선택한 요일의 수업일을 찾지 못했습니다. 날짜/요일을 확인해 주세요." };
       }
 
-      const firstInstantKST = makeKoreaZonedDate(firstClassISO, korDisp.hh, korDisp.mm);
+      const firstInstantKST = makeKoreaZonedDate(firstClassISO, parsed.hh, parsed.mm);
+      const localFirst = formatInTimeZone(firstInstantKST, tz);
+      const kstFromInstant = formatInTimeZone(firstInstantKST, "Asia/Seoul");
+      const kstBaseLine = formatShortLine("🇰🇷", kstFromInstant.weekday, kstFromInstant.amPm, kstFromInstant.time);
+      const transitions = findDstTransitionsBetween(startDay, endDay, tz);
 
-      const localFirst = formatTime12(firstInstantKST, tz);
-      const kstFirst = formatTime12(firstInstantKST, "Asia/Seoul");
+      if(dstMode === "AUTO"){
+        timeLine =
+`${timeHeader}${formatShortLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time)}
+${kstBaseLine}
+`;
+      }
 
-      const sameWeekday = (localFirst.wdKo === kstFirst.wdKo);
+      if(dstMode === "STUDENT_CHANGE"){
+        if(transitions.length){
+          const firstShift = transitions[0];
 
-      // DST(강사만 변경) 시 한국 시간 변경 안내
-      let dstNote = "";
+          const nextClass = findNextClassAfterTransition({
+            startISO: startDay,
+            endISO: endDay,
+            weekdayKo: weekday,
+            kstTime24: parsed,
+            transitionInstantUtc: firstShift.instantUtc
+          });
+
+          const prevClass = findPrevClassOnOrBeforeTransition({
+            startISO: startDay,
+            endISO: endDay,
+            weekdayKo: weekday,
+            kstTime24: parsed,
+            transitionInstantUtc: firstShift.instantUtc
+          });
+
+          const beforeInst = prevClass ? prevClass.classInstantKST : firstInstantKST;
+          const afterInst  = nextClass ? nextClass.classInstantKST : firstInstantKST;
+
+          const localBefore = formatInTimeZone(beforeInst, tz);
+          const localAfter  = formatInTimeZone(afterInst, tz);
+
+          const appliedISO = nextClass ? getLocalISODate(nextClass.classInstantKST, tz) : firstShift.localISO;
+          const appliedMD = appliedISO ? formatMD(appliedISO) : "";
+
+          const wShort = weekdayLongToShortParen(localBefore.weekday);
+          const beforeT = `${stripSi(localBefore.time)} ${koAmPmToEN(localBefore.amPm)}`.trim();
+          const afterT  = `${stripSi(localAfter.time)} ${koAmPmToEN(localAfter.amPm)}`.trim();
+
+          timeLine =
+`${timeHeader}${flag} ${wShort} ${beforeT} ➜ ${afterT} *${appliedMD}부터 적용
+${kstBaseLine}
+※ 서머타임 전환 시, 한국 시간 고정
+`;
+        }else{
+          timeLine =
+`${timeHeader}${formatShortLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time)}
+${kstBaseLine}
+`;
+        }
+      }
+
       if(dstMode === "TEACHER_CHANGE"){
-        const transitions = findDstTransitionsBetween(startDay, endDay, tz);
-        const firstStart = transitions.find(t => t.kind === "START");
-        if(firstStart){
+        let noteLine = "";
+        if(transitions.length){
+          const firstShift = transitions[0];
           const nextClassForNote = findNextClassAfterTransition({
             startISO: startDay,
             endISO: endDay,
             weekdayKo: weekday,
-            kstTime24: { hh: korDisp.hh, mm: korDisp.mm },
-            transitionInstantUtc: firstStart.instantUtc
+            kstTime24: parsed,
+            transitionInstantUtc: firstShift.instantUtc
           });
 
           if(nextClassForNote){
             const adjustedInstant = new Date(
-              nextClassForNote.classInstantKST.getTime() - firstStart.diffMinutes * 60000
+              nextClassForNote.classInstantKST.getTime() - firstShift.diffMinutes * 60000
             );
-            const kstAdjusted = formatTime12(adjustedInstant, "Asia/Seoul");
-            dstNote = `\n※ 서머타임 전환 시, 한국 시간 ${kstAdjusted.time}으로 변경`;
+            const kstAdjusted = formatInTimeZone(adjustedInstant, "Asia/Seoul");
+            noteLine = `※ 서머타임 전환 시, 한국 시간 ${stripSi(kstAdjusted.time)} ${koAmPmToEN(kstAdjusted.amPm)}으로 변경`;
           }
         }
-      }
 
-      if(sameWeekday){
-        timeBlock =
-`• 수업 시간 : 주 1회 (${durationText})
-${flag} (${localFirst.wdKo}) ${localFirst.time}
-🇰🇷 (${kstFirst.wdKo}) ${kstFirst.time}${dstNote}
-`;
-      }else{
-        timeBlock =
-`• 수업 시간 : 주 1회 (${durationText}) 
-${flag} (${localFirst.wdKo}) ${localFirst.time}
-🇰🇷 (${kstFirst.wdKo}) ${kstFirst.time}${dstNote}
-`;
+        timeLine =
+`${timeHeader}${formatShortLine(flag, localFirst.weekday, localFirst.amPm, localFirst.time)}
+${kstBaseLine}
+${noteLine ? (noteLine + "\n") : ""}`;
       }
     }
 
-    // ✅ [보강 일정] 블록(입력 있을 때만)
-    let makeupBlock = "";
-    if(makeupRaw){
-      makeupBlock =
-`
-[보강 일정]
-${makeupRaw}
-`;
-    }
-
-    // ✅ [학습 과정] 블록
-    const isCustomCourse = (curriculumName === CUSTOM_COURSE_LABEL);
-
-    let courseBlock = "";
-    if(isCustomCourse){
-      const cc = $("customCourseName").value.trim();
-      if(!cc) return { ok:false, error:"커스텀 코스 클래스명을 입력해 주세요. (예: 000)" };
-      courseBlock =
-`[학습 과정]
-${cc}
-`;
-    }else if(isBrandingCourse){
-      courseBlock =
-`[학습 과정]
-1:1 브랜딩 코스
-`;
-    }else{
-      if(!curriculumUrl) return { ok:false, error:"커리큘럼 URL 코드가 비어 있습니다. (선택하면 자동 입력됩니다)" };
-      courseBlock =
-`[학습 과정]
-${curriculumName}
-https://affinityuniverse.com/${curriculumUrl}
-`;
-    }
-
-    // ✅ 결석/보강 정책 블록(그룹/1:1)
-    const policyBlock = (classType === "GROUP")
-      ? `[결석 및 보강 정책]
-• 사전 연락 시 : 단계별 1회 무료 보강
-• 당일 취소/보강 요청 : 30,000원
-`
-      : `[결석 및 보강 정책]
-• 결석 시: 한 주 휴강 후 기간 자동 연장
-`;
+    const channelGuideLine = channelName ? `• ${channelName} 채널명으로 안내 도와드리겠습니다.\n` : "";
 
     const msg =
 `Affinity Universe: 좋은 소식을 알려드립니다.
 
-${scheduleTitle}
-• 수업 기간 : ${fmtYMD(startDay)} – ${fmtYMD(endDay)}
-${closedLine}${timeBlock}${makeupBlock}
-${courseBlock}
+[클래스 일정]
+• 수업 기간: ${formatMD(displayStartISO)}(${dispStartW}) ~ ${formatMD(displayEndISO)}(${dispEndW})
+${closedBlock}• 수업 요일: 매주 ${weekday}요일
+${timeLine}
+[학습 과정]
+${curriculumName === CUSTOM_COURSE_LABEL ? `1:1 ${$("customCourseName").value.trim()} 클래스는 개별 맞춤 커리큘럼으로 진행됩니다.` : curriculumName}
+${curriculumName === CUSTOM_COURSE_LABEL ? "" : `https://affinityuniverse.com/${curriculumUrl}`}
+
 [수업 참여 안내]
 • 수업 시작 5분 전 접속 권장
 • 수업 전 카카오톡 알림 발송
-
-${policyBlock}
-감사합니다.
+${channelGuideLine}
+${classType === "GROUP"
+? `[결석 및 보강 정책]
+• 사전 연락 시 : 단계별 1회 무료 보강
+• 당일 취소/보강 요청 : 30,000원
+`
+: `[결석 및 보강 정책]
+• 결석 시 : 한 주 휴강 후 기간 자동 연장
+`
+}
+${additionalGuideText ? `\n${additionalGuideText}\n` : ""}감사합니다.
 Affinity Universe
 `;
 
@@ -1257,7 +1302,7 @@ Affinity Universe
    * 이벤트 바인딩
    *********************/
   function bind(){
-    const rePreview = () => { updateLocalPreview(); };
+    const rePreview = () => updateLocalPreview();
 
     ["startDay","endDay","weekday","amPm","korTime","tzSelect","studentLocation"].forEach(id=>{
       $(id).addEventListener("input", rePreview);
@@ -1276,10 +1321,15 @@ Affinity Universe
     $("countryInput").addEventListener("input", ()=>{
       const ko = $("countryInput").value.trim();
       const isUS = (ko === "미국");
+      const isAU = (ko === "호주");
 
       $("usStateBox").style.display = isUS ? "block" : "none";
+      $("auStateBox").style.display = isAU ? "block" : "none";
+
       if(isUS){
         applyCountryToTzOptions("미국");
+      }else if(isAU){
+        applyCountryToTzOptions("호주");
       }else{
         applyCountryToTzOptions(ko);
       }
@@ -1288,11 +1338,15 @@ Affinity Universe
 
     $("usStateSelect").addEventListener("change", ()=>{
       const stateName = $("usStateSelect").value;
-      if(stateName){
-        applyUSStateToTzOptions(stateName);
-      }else{
-        applyCountryToTzOptions("미국");
-      }
+      if(stateName) applyUSStateToTzOptions(stateName);
+      else applyCountryToTzOptions("미국");
+      updateLocalPreview();
+    });
+
+    $("auStateSelect").addEventListener("change", ()=>{
+      const code = $("auStateSelect").value;
+      if(code) applyAURegionToTzOptions(code);
+      else applyCountryToTzOptions("호주");
       updateLocalPreview();
     });
 
@@ -1332,7 +1386,6 @@ Affinity Universe
       updateLocalPreview();
     });
 
-    // 휴일 프리셋 → 자동 입력
     $("closedNamePreset").addEventListener("change", ()=>{
       const v = $("closedNamePreset").value;
       $("closedName").value = v || "";
@@ -1396,17 +1449,14 @@ Affinity Universe
       showAlert(`선택 공휴일 ${added}개를 휴강일에 추가했습니다.`, "ok");
     });
 
-    // 커리큘럼 선택 → URL 자동 매칭 + 커스텀 코스 전용 입력 표시
     $("curriculumSelect").addEventListener("change", ()=>{
       const v = $("curriculumSelect").value;
       const isCustom = (v === CUSTOM_COURSE_LABEL);
-      const isBranding = (v === BRANDING_COURSE_LABEL);
-      const isNoLink = isCustom || isBranding;
 
       $("customCourseBox").style.display = isCustom ? "block" : "none";
-      $("curriculumUrl").disabled = isNoLink;
+      $("curriculumUrl").disabled = isCustom;
 
-      if(isNoLink){
+      if(isCustom){
         $("curriculumUrl").value = "";
       }else{
         const slug = CURRICULUM_MAP[v] || "";
@@ -1432,9 +1482,8 @@ Affinity Universe
 
     $("reset").addEventListener("click", ()=>{
       $("studentName").value = "";
-      $("enrollType").value = "NEW";
-      $("familyType").value = "ONLY";
       $("classType").value = "ONE_ON_ONE";
+      $("channelName").value = "";
       $("startDay").value = "";
       $("endDay").value = "";
       $("weekday").value = "월";
@@ -1453,17 +1502,23 @@ Affinity Universe
       $("usStateBox").style.display = "none";
       $("usStateSelect").value = "";
 
+      $("auStateBox").style.display = "none";
+      $("auStateSelect").value = "";
+      $("auTzHint").value = "주/지역 선택 → 시간대 자동 설정";
+
       setSelectOptions($("tzSelect"), [], "시간대 선택");
       $("output").value = "";
-      if($("makeupSchedule")) $("makeupSchedule").value = "";
+
       closedList = [];
       renderClosedPreview();
       updateLocalPreview();
 
+      $("curriculumSelect").value = CUSTOM_COURSE_LABEL;
       $("curriculumUrl").value = "";
       $("customCourseName").value = "";
       $("customCourseBox").style.display = "none";
       $("curriculumUrl").disabled = false;
+      $("curriculumSelect").dispatchEvent(new Event("change"));
 
       showAlert("초기화되었습니다.", "ok");
     });
@@ -1473,6 +1528,7 @@ Affinity Universe
     initCurriculumSelect();
     initCountryDatalist();
     initUsStateSelect();
+    initAuStateSelect();
     setSelectOptions($("tzSelect"), [], "시간대 선택");
     $("holidayList").textContent = "아직 불러오지 않았습니다.";
     renderClosedPreview();
