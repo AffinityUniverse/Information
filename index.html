@@ -137,9 +137,9 @@
         </select>
       </div>
       <div>
-        <label for="channelName">채널명</label>
-        <select id="channelName">
-          <option value="">선택 안 함</option>
+        <label for="discordChannel">디스코드채널</label>
+        <select id="discordChannel">
+          <option value="해당없음">해당없음</option>
           <option value="MON (월)">MON (월)</option>
           <option value="TUE (화)">TUE (화)</option>
           <option value="WED (수)">WED (수)</option>
@@ -1034,15 +1034,42 @@
   }
 
   /*********************
+   * 공통 수업 참여 안내 생성
+   *********************/
+  function buildParticipationGuide(curriculumName, discordChannel){
+    const isDrawingCourse = ["디지털 드로잉 베이직","디지털 드로잉 프로","디지털 드로잉 북"].includes(curriculumName);
+    const isVideoCourse = ["비디오 베이직","비디오 프로"].includes(curriculumName);
+
+    if(isDrawingCourse){
+      const firstLine = (discordChannel && discordChannel !== "해당없음")
+        ? `• 수업 시작 5분 전, 디스코드 ${discordChannel} 채널 입장`
+        : `• 수업 시작 5분 전 접속 권장`;
+
+      return `[수업 참여 안내]
+${firstLine}
+• 앱 다운로드 및 애플 펜슬 충전 필수 *(갤럭시탭인 경우) S펜 사전 준비
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    if(isVideoCourse){
+      const firstLine = (discordChannel && discordChannel !== "해당없음")
+        ? `• 수업 시작 5분 전, 디스코드 ${discordChannel} 채널 입장`
+        : `• 수업 시작 5분 전 접속 권장`;
+
+      return `[수업 참여 안내]
+${firstLine}
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    return `[수업 참여 안내]
+• 수업 시작 5분 전 접속 권장
+• 수업 전 카카오톡 알림 발송`;
+  }
+
+  /*********************
    * 커리큘럼별 추가 안내 문구
    *********************/
   function getAdditionalGuideText(curriculumName){
-    const drawingCourses = [
-      "디지털 드로잉 베이직",
-      "디지털 드로잉 프로",
-      "디지털 드로잉 북"
-    ];
-
     if(curriculumName === "비디오 베이직" || curriculumName === "비디오 프로"){
       return `[CapCut 사전 안내]
 • Cap Cut Pro 구독 필수 (월 19,800원)
@@ -1067,13 +1094,6 @@ Step 4. 사진 구성
 • 인물이 명확하게 돋보이는 풀샷(Full Shot) 위주로 준비해 주세요.`;
     }
 
-    if(drawingCourses.includes(curriculumName)){
-      return `[디지털 드로잉 수업 참여 안내]
-• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
-• 앱 다운로드 및 애플 펜슬 충전 필수 *(갤럭시탭인 경우) S펜 사전 준비
-• 수업 전 카카오톡 알림 발송`;
-    }
-
     return "";
   }
 
@@ -1083,7 +1103,7 @@ Step 4. 사진 구성
   function buildMessage(){
     const studentName = $("studentName").value.trim();
     const classType = $("classType").value;
-    const channelName = $("channelName").value.trim();
+    const discordChannel = $("discordChannel").value.trim();
     const startDay = $("startDay").value;
     const endDay = $("endDay").value;
     const weekday = $("weekday").value;
@@ -1091,6 +1111,7 @@ Step 4. 사진 구성
     const korTimeStr = $("korTime").value.trim();
     const curriculumName = $("curriculumSelect").value;
     const curriculumUrl = $("curriculumUrl").value.trim();
+    const participationGuideText = buildParticipationGuide(curriculumName, discordChannel);
     const additionalGuideText = getAdditionalGuideText(curriculumName);
     const studentLocation = $("studentLocation").value;
     const dstMode = $("dstMode").value;
@@ -1241,8 +1262,6 @@ ${noteLine ? (noteLine + "\n") : ""}`;
       }
     }
 
-    const channelGuideLine = channelName ? `• ${channelName} 채널명으로 안내 도와드리겠습니다.\n` : "";
-
     const msg =
 `Affinity Universe: 좋은 소식을 알려드립니다.
 
@@ -1254,10 +1273,8 @@ ${timeLine}
 ${curriculumName === CUSTOM_COURSE_LABEL ? `1:1 ${$("customCourseName").value.trim()} 클래스는 개별 맞춤 커리큘럼으로 진행됩니다.` : curriculumName}
 ${curriculumName === CUSTOM_COURSE_LABEL ? "" : `https://affinityuniverse.com/${curriculumUrl}`}
 
-[수업 참여 안내]
-• 수업 시작 5분 전 접속 권장
-• 수업 전 카카오톡 알림 발송
-${channelGuideLine}
+${participationGuideText}
+
 ${classType === "GROUP"
 ? `[결석 및 보강 정책]
 • 사전 연락 시 : 단계별 1회 무료 보강
@@ -1483,7 +1500,7 @@ Affinity Universe
     $("reset").addEventListener("click", ()=>{
       $("studentName").value = "";
       $("classType").value = "ONE_ON_ONE";
-      $("channelName").value = "";
+      $("discordChannel").value = "해당없음";
       $("startDay").value = "";
       $("endDay").value = "";
       $("weekday").value = "월";
