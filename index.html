@@ -134,7 +134,7 @@
     <div class="row3">
       <div>
         <label for="studentName">이름</label>
-        <input id="studentName" type="text" placeholder="예: 김삐르바아르롱 벨라미 드 카스텔라 9세" />
+        <input id="studentName" type="text" placeholder="예: 홍길동" />
       </div>
       <div>
         <label for="templateType">양식 선택</label>
@@ -154,11 +154,10 @@
 
     <div class="row">
       <div>
-        <label for="siblingType">형제/자매</label>
+        <label for="siblingType">외동/형제</label>
         <select id="siblingType">
-          <option value="NONE">해당없음</option>
-          <option value="BROTHER">형제</option>
-          <option value="SISTER">자매</option>
+          <option value="BROTHER">외동</option>
+          <option value="SISTER">형제</option>
         </select>
       </div>
       <div>
@@ -1336,9 +1335,10 @@ ${noteLine ? noteLine + "\n" : ""}`;
     }
 
     const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz);
-    const scheduleTitle = siblingType === "BROTHER" || siblingType === "SISTER"
-      ? `[${studentName} 클래스 일정]`
-      : `[클래스 일정]`;
+    const scheduleTitle =
+      siblingType === "SISTER"
+        ? `[${studentName} 클래스 일정]`
+        : `[클래스 일정]`;
     const participationGuideText = buildParticipationGuide(curriculumName, discord, deviceType);
     const additionalGuideText = getAdditionalGuideText(curriculumName);
 
