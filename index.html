@@ -316,7 +316,7 @@
           <option value="한글날">한글날</option>
           <option value="크리스마스">크리스마스</option>
           <option value="노동절">노동절</option>
-          <option value="한국 공휴일">한국 공휴일</option>
+          <option value="한국 공휴일" data-overseas-only="true">한국 공휴일</option>
         </select>
 
         <input id="closedName" type="text" placeholder="직접 입력 시 여기에 작성 (선택)" style="margin-top:8px" />
@@ -684,6 +684,36 @@
 
   function flagFromCountryKo(koName){
     return COUNTRY_DB.find(c => c.ko === (koName || "").trim())?.flag || "";
+  }
+
+  function syncClosedNamePresetByLocation(){
+    const isOverseas = $("studentLocation").value === "OVERSEAS";
+    const preset = $("closedNamePreset");
+    const closedName = $("closedName");
+  
+    const options = Array.from(preset.options);
+  
+    options.forEach(opt => {
+      if(opt.dataset.overseasOnly === "true"){
+        opt.hidden = !isOverseas;
+      }else{
+        opt.hidden = isOverseas;
+      }
+    });
+  
+    if(isOverseas){
+      preset.value = "한국 공휴일";
+      preset.disabled = true;
+      closedName.value = "한국 공휴일";
+      closedName.disabled = true;
+      closedName.placeholder = "해외 선택 시 한국 공휴일로 고정";
+    }else{
+      preset.disabled = false;
+      closedName.disabled = false;
+      preset.value = "";
+      closedName.value = "";
+      closedName.placeholder = "직접 입력 시 여기에 작성 (선택)";
+    }
   }
 
   function getUtcOffsetMinutes(date, timeZone){
@@ -1467,7 +1497,7 @@ Affinity Universe
       $("tzBadge").textContent = v === "OVERSEAS"
         ? "해외: 수업 기간 내 DST 변곡점 자동 감지"
         : "해외 설정 시 현지시간(요일 포함) 자동 표시";
-      updateClosedNamePresetByLocation();
+        syncClosedNamePresetByLocation();
       updateLocalPreview();
     });
 
@@ -1675,6 +1705,7 @@ Affinity Universe
       $("deviceBox").style.display = "none";
       $("curriculumUrl").disabled = false;
       $("curriculumSelect").dispatchEvent(new Event("change"));
+      syncClosedNamePresetByLocation();
 
       showAlert("초기화되었습니다.", "ok");
     });
@@ -1690,7 +1721,7 @@ Affinity Universe
     renderClosedPreview();
     bind();
     $("curriculumSelect").dispatchEvent(new Event("change"));
-    updateClosedNamePresetByLocation();
+    syncClosedNamePresetByLocation();
     updateLocalPreview();
     updateDeviceVisibility();
   }
