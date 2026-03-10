@@ -188,6 +188,14 @@
 
     <div class="row3">
       <div>
+        <label for="weekday">정기 수업 요일</label>
+        <select id="weekday">
+          <option value="월">월</option><option value="화">화</option><option value="수">수</option>
+          <option value="목">목</option><option value="금">금</option><option value="토">토</option>
+          <option value="일">일</option>
+        </select>
+      </div>
+      <div>
         <label for="amPm">오전 / 오후</label>
         <select id="amPm">
           <option value="오전">오전</option>
@@ -1175,6 +1183,7 @@ Step 4. 사진 구성
     const startDay = $("startDay").value;
     const endDay = $("endDay").value;
     const weekday = $("weekday").value;
+    const weekday = $("weekday").value;
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
     const tz = $("tzSelect").value;
@@ -1447,7 +1456,7 @@ Affinity Universe
   function bind(){
     const rePreview = () => updateLocalPreview();
 
-    ["startDay","endDay","amPm","korTime","tzSelect","studentLocation"].forEach(id=>{
+    ["startDay","endDay","weekday", "amPm","korTime","tzSelect","studentLocation"].forEach(id=>{
       $(id).addEventListener("input", rePreview);
       $(id).addEventListener("change", rePreview);
     });
@@ -1633,6 +1642,7 @@ Affinity Universe
       $("deviceType").value = "아이패드";
       $("startDay").value = "";
       $("endDay").value = "";
+      $("weekday").value = "월";
       $("amPm").value = "오전";
       $("korTime").value = "";
 
