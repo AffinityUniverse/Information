@@ -691,27 +691,40 @@
     const preset = $("closedNamePreset");
     const closedName = $("closedName");
   
-    const options = Array.from(preset.options);
-  
-    options.forEach(opt => {
-      if(opt.dataset.overseasOnly === "true"){
-        opt.hidden = !isOverseas;
-      }else{
-        opt.hidden = isOverseas;
-      }
-    });
+    if(!preset || !closedName) return;
   
     if(isOverseas){
+      preset.innerHTML = `<option value="한국 공휴일">한국 공휴일</option>`;
       preset.value = "한국 공휴일";
       preset.disabled = true;
+  
       closedName.value = "한국 공휴일";
       closedName.disabled = true;
       closedName.placeholder = "해외 선택 시 한국 공휴일로 고정";
     }else{
-      preset.disabled = false;
-      closedName.disabled = false;
+      preset.innerHTML = `
+        <option value="">직접 입력</option>
+        <option value="임시휴무">임시휴무</option>
+        <option value="공휴일">공휴일</option>
+        <option value="새해">새해</option>
+        <option value="신정">신정</option>
+        <option value="설 연휴">설 연휴</option>
+        <option value="삼일절">삼일절</option>
+        <option value="어린이날">어린이날</option>
+        <option value="부처님오신날">부처님오신날</option>
+        <option value="현충일">현충일</option>
+        <option value="광복절">광복절</option>
+        <option value="추석 연휴">추석 연휴</option>
+        <option value="개천절">개천절</option>
+        <option value="한글날">한글날</option>
+        <option value="크리스마스">크리스마스</option>
+        <option value="노동절">노동절</option>
+      `;
       preset.value = "";
+      preset.disabled = false;
+  
       closedName.value = "";
+      closedName.disabled = false;
       closedName.placeholder = "직접 입력 시 여기에 작성 (선택)";
     }
   }
