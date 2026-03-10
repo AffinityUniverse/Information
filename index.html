@@ -1219,7 +1219,7 @@ Step 4. 사진 구성
       return { ok:false, error:"해외 수강생은 시간대 설정이 필요합니다." };
     }
 
-    const timeHeader = `• 수업 시간: 주 1회 (${classType === "ONE_ON_ONE" ? "40m" : "1h"} 수업)\n`;
+    const timeHeader = `• 수업 시간: 주 1회 (${classType === "ONE_ON_ONE" ? "40m" : "1h"})\n`;
     const korTimeDisplay = formatTimeDisplayInput(korTimeStr);
 
     let timeLine = "";
