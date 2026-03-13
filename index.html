@@ -417,6 +417,7 @@
     "어피니티 마스터":"AffinityMaster",
     "비디오 BASIC":"VideoBasic",
     "비디오 PRO":"VideoPro",
+    "비디오 EDITOR":"VideoEditor",
     "모션 그래픽":"Motiongraphics",
     "북 애니메이션":"BookAnimation",
     "모션폴리오":"Motionfolio",
@@ -442,7 +443,7 @@
     { group:"그림책/어피니티 디자인", items:["아트북 디자인 Lv.1","아트북 디자인 Lv.2","아트북 디자인 Lv.3","아트북 디자인 Lv.4","아트북 디자인 Lv.5","파운데이션","디플로마","에디터"] },
     { group:"디지털 드로잉", items:["디지털 드로잉 BASIC","디지털 드로잉 PRO","디지털 드로잉 북","풍경화 디지털 드로잉","애니메이션 BASIC","애니메이션 PRO"] },
     { group:"캐릭터/IP", items:["굿즈 디자인","이모티콘 디자인"] },
-    { group:"영상/모션", items:["비디오 BASIC","비디오 PRO","모션 그래픽","북 애니메이션","모션폴리오"] },
+    { group:"영상/모션", items:["비디오 BASIC","비디오 PRO","비디오 EDITOR", "모션 그래픽","북 애니메이션","모션폴리오"] },
     { group:"코드 디자인", items:["스크래치 BASIC","스크래치 PRO","플레이 북","HTML BEGINNER","HTML BASIC","HTML PRO","자바스크립트 BASIC","자바스크립트 PRO"] },
     { group:"메시지 디자인", items:["스토리 크래프팅","아트 에세이","아이덴티티 북","퍼블리싱"] },
     { group:"웹 프로듀서", items:["웹 프로 마스터","웹 프로필","마케팅 매니지먼트","1:1 브랜딩 코스"] },
@@ -1079,7 +1080,7 @@
    * 참여 안내 / 추가 안내
    *********************/
   function buildParticipationGuide(curriculumName, discord, deviceType){
-    const videoCourses = ["비디오 BASIC","비디오 PRO"];
+    const videoCourses = ["비디오 BASIC","비디오 PRO", "비디오 EDITOR"];
     const hasDiscord = discord && discord !== "해당없음";
     const isDrawingDeviceCourse = DRAWING_DEVICE_COURSES.includes(curriculumName);
 
@@ -1116,7 +1117,7 @@ ${deviceLine}
   }
 
   function getAdditionalGuideText(curriculumName){
-    if(curriculumName === "비디오 BASIC" || curriculumName === "비디오 PRO"){
+    if(curriculumName === "비디오 BASIC" || curriculumName === "비디오 PRO" || curriculumName === "비디오 EDITOR"){
       return `[CapCut 사전 안내]
 • Cap Cut Pro 구독 필수 (월 19,800원)
 
