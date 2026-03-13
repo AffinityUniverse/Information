@@ -882,7 +882,7 @@
     if(studentLocation === "OVERSEAS"){
       return `${m}. ${day}(${weekday}, 한국 공휴일)`;
     }
-    return holidayName ? `${m}. ${day}(${weekday}, ${holidayName})` : `${m}. ${day}(${weekday})`;
+    return holidayName ? `${m}. ${day}(${weekday}, ${holidayName})` : `${m}. ${day} (${weekday})`;
   }
 
   function formatTimeDisplayInput(korTimeStr){
