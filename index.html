@@ -701,6 +701,7 @@
         <option value="한글날">한글날</option>
         <option value="크리스마스">크리스마스</option>
         <option value="노동절">노동절</option>
+        <option value="대체휴일">대체휴일</option>
       `;
       preset.value = "";
       preset.disabled = false;
@@ -1090,7 +1091,7 @@
         : `• 수업 시작 5분 전 접속 권장`;
 
       const deviceLine = deviceType === "갤탭"
-        ? "• S펜 사전 준비"
+        ? "• 앱 다운로드 및 S펜 사전 준비"
         : "• 앱 다운로드 및 애플 펜슬 충전 필수";
 
       return `[수업 참여 안내]
@@ -1356,7 +1357,7 @@ ${noteLine ? noteLine + "\n" : ""}`;
     const additionalGuideText = getAdditionalGuideText(curriculumName);
 
     const introLine = templateType === "DIGITAL_DRAWING"
-      ? "Affinity Universe: 디지털 드로잉 수업 일정을 안내드립니다."
+      ? "Affinity Universe: 좋은 소식을 알려드립니다."
       : "Affinity Universe: 좋은 소식을 알려드립니다.";
 
     const customCourseName = $("customCourseName").value.trim();
