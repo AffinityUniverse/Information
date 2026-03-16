@@ -884,7 +884,9 @@
     if(studentLocation === "OVERSEAS"){
       return `${m}. ${day}(${weekday}, 한국 공휴일)`;
     }
-    return holidayName ? `${m}. ${day}(${weekday}, ${holidayName})` : `${m}. ${day} (${weekday})`;
+    return holidayName
+      ? `${m}. ${day}(${weekday}, ${holidayName})`
+      : `${m}. ${day}(${weekday})`;
   }
 
   function formatTimeDisplayInput(korTimeStr){
@@ -901,32 +903,74 @@
   let closedList = [];
   let fetchedHolidays = [];
 
+  function normalizeClosedList(list){
+    const map = new Map();
+
+    (Array.isArray(list) ? list : []).forEach(item=>{
+      const date = (item?.date || "").trim();
+      const name = (item?.name || "").trim();
+
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+      if(!map.has(date)){
+        map.set(date, { date, name });
+      }else{
+        const prev = map.get(date);
+        if(!prev.name && name){
+          map.set(date, { date, name });
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a,b)=>a.date.localeCompare(b.date));
+  }
+
   function renderClosedPreview(){
     const box = $("closedPreview");
+    closedList = normalizeClosedList(closedList);
+
     if(closedList.length === 0){
       box.textContent = "등록된 휴강일: 없음";
       return;
     }
-    const sorted = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
-    const lines = sorted.map((x, i) => {
+
+    const lines = closedList.map((x, i) => {
       const w = getWeekdayKoFromISO(x.date);
       const d = toDateUTC(x.date);
       const m = d.getUTCMonth()+1;
       const day = d.getUTCDate();
-      const nm = x.name ? `(${x.name})` : "";
+      const nm = x.name ? ` (${x.name})` : "";
       return `${i+1}) ${m}/${day}(${w})${nm}`;
     });
+
     box.textContent = "등록된 휴강일:\n" + lines.join("\n");
   }
 
   function upsertClosed(dateISO, name){
-    const idx = closedList.findIndex(x => x.date === dateISO);
+    const date = (dateISO || "").trim();
+    const cleanName = (name || "").trim();
+
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+    const idx = closedList.findIndex(x => x.date === date);
     if(idx >= 0){
-      if(!closedList[idx].name && name) closedList[idx].name = name;
-      return;
+      if(cleanName) closedList[idx].name = cleanName;
+    }else{
+      closedList.push({ date, name: cleanName });
     }
-    closedList.push({ date: dateISO, name: name || "" });
-    closedList.sort((a,b)=>a.date.localeCompare(b.date));
+
+    closedList = normalizeClosedList(closedList);
+  }
+
+  function buildClosedScheduleBlock(studentLocation, timeZone){
+    const normalized = normalizeClosedList(closedList);
+    if(normalized.length === 0) return "";
+
+    const holidayItems = normalized.map(item =>
+      formatHolidayDateLine(item.date, item.name, studentLocation, timeZone)
+    );
+
+    return `• 휴강 일정 : ${holidayItems.join(", ")}\n`;
   }
 
   /*********************
@@ -948,8 +992,9 @@
       all.push(...data);
     }
 
-    return all.filter(h => h.date >= startISO && h.date <= endISO)
-              .sort((a,b)=>a.date.localeCompare(b.date));
+    return all
+      .filter(h => h.date >= startISO && h.date <= endISO)
+      .sort((a,b)=>a.date.localeCompare(b.date));
   }
 
   function renderHolidayList(){
@@ -1093,8 +1138,8 @@
         : `• 수업 시작 5분 전 접속 권장`;
 
       const deviceLine = deviceType === "갤탭"
-        ? "• 앱 다운로드 및 S펜 사전 준비"
-        : "• 앱 다운로드 및 애플 펜슬 충전 필수";
+        ? "앱 다운로드 및 S펜 사전 준비"
+        : "앱 다운로드 및 애플 펜슬 충전 필수";
 
       return `[수업 참여 안내]
 ${firstLine}
@@ -1341,14 +1386,7 @@ ${noteLine ? noteLine + "\n" : ""}`;
       }
     }
 
-    const sortedClosed = [...closedList].sort((a,b)=>a.date.localeCompare(b.date));
-    let closedBlock = "";
-    if(sortedClosed.length > 0){
-      const holidayItems = sortedClosed.map(x =>
-        formatHolidayDateLine(x.date, (x.name || "").trim(), studentLocation, tz)
-      );
-      closedBlock = `• 휴강 일정 : ${holidayItems.join(", ")}\n`;
-    }
+    const closedBlock = buildClosedScheduleBlock(studentLocation, tz);
 
     const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz);
     const scheduleTitle =
@@ -1526,11 +1564,15 @@ Affinity Universe
 
     $("addClosed").addEventListener("click", ()=>{
       const d = $("closedDate").value;
-      const n = (($("closedNamePreset").value || "").trim()) || $("closedName").value.trim();
+      const presetValue = ($("closedNamePreset").value || "").trim();
+      const manualValue = $("closedName").value.trim();
+      const n = manualValue || presetValue;
+
       if(!d){
         showAlert("휴강일 날짜를 선택해 주세요.", "warn");
         return;
       }
+
       upsertClosed(d, n);
       $("closedDate").value = "";
 
@@ -1575,8 +1617,10 @@ Affinity Universe
         showAlert("먼저 공휴일을 불러와 주세요.", "warn");
         return;
       }
+
       const checks = Array.from($("holidayList").querySelectorAll("input[type=checkbox][data-idx]"));
       let added = 0;
+
       checks.forEach(ch=>{
         if(!ch.checked) return;
         const idx = Number(ch.dataset.idx);
@@ -1585,6 +1629,7 @@ Affinity Universe
         upsertClosed(h.date, h.localName || h.name || "공휴일");
         added++;
       });
+
       renderClosedPreview();
       showAlert(`선택 공휴일 ${added}개를 휴강일에 추가했습니다.`, "ok");
     });
