@@ -1144,24 +1144,24 @@
       return `[수업 참여 안내]
 ${firstLine}
 • ${deviceLine}
-• 수업 2시간 전 카카오톡 알림 발송`;
+• 수업 2시간 전 카카오톡 알림 발송드립니다.`;
     }
 
     if(videoCourses.includes(curriculumName)){
       return `[수업 참여 안내]
 • ${hasDiscord ? `수업 시작 5분 전, 디스코드 ${discord} 채널 입장` : "수업 시작 5분 전 접속 권장"}
-• 수업 2시간 전 카카오톡 알림 발송`;
+• 수업 2시간 전 카카오톡 알림 발송드립니다.`;
     }
 
     if(hasDiscord){
       return `[수업 참여 안내]
 • 수업 시작 5분 전, 디스코드 ${discord} 채널 입장
-• 수업 2시간 전 카카오톡 알림 발송`;
+• 수업 2시간 전 카카오톡 알림 발송드립니다.`;
     }
 
     return `[수업 참여 안내]
 • 수업 시작 5분 전 접속 권장
-• 수업 2시간 전 카카오톡 알림 발송`;
+• 수업 2시간 전 카카오톡 알림 발송드립니다.`;
   }
 
   function getAdditionalGuideText(curriculumName){
