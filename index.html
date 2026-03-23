@@ -850,13 +850,15 @@
   /*********************
    * 날짜/표기 유틸
    *********************/
-  function formatPeriodRange(startISO, endISO, timeZone){
+  function formatPeriodRange(startISO, endISO, timeZone, classTime24){
     let startLocalISO = startISO;
     let endLocalISO = endISO;
 
     if(timeZone && timeZone !== "Asia/Seoul"){
-      startLocalISO = getLocalISODate(makeKoreaZonedDate(startISO, 12, 0), timeZone);
-      endLocalISO = getLocalISODate(makeKoreaZonedDate(endISO, 12, 0), timeZone);
+      const hh = classTime24?.hh ?? 12;
+      const mm = classTime24?.mm ?? 0;
+      startLocalISO = getLocalISODate(makeKoreaZonedDate(startISO, hh, mm), timeZone);
+      endLocalISO = getLocalISODate(makeKoreaZonedDate(endISO, hh, mm), timeZone);
     }
 
     const s = toDateUTC(startLocalISO);
@@ -871,10 +873,12 @@
     return `${sY}. ${sM}. ${sD} - ${eM}. ${eD}`;
   }
 
-  function formatHolidayDateLine(dateISO, holidayName, studentLocation, timeZone){
+  function formatHolidayDateLine(dateISO, holidayName, studentLocation, timeZone, classTime24){
     let localISO = dateISO;
     if(studentLocation === "OVERSEAS" && timeZone){
-      localISO = getLocalISODate(makeKoreaZonedDate(dateISO, 12, 0), timeZone);
+      const hh = classTime24?.hh ?? 12;
+      const mm = classTime24?.mm ?? 0;
+      localISO = getLocalISODate(makeKoreaZonedDate(dateISO, hh, mm), timeZone);
     }
     const d = toDateUTC(localISO);
     const m = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -962,12 +966,12 @@
     closedList = normalizeClosedList(closedList);
   }
 
-  function buildClosedScheduleBlock(studentLocation, timeZone){
+  function buildClosedScheduleBlock(studentLocation, timeZone, classTime24){
     const normalized = normalizeClosedList(closedList);
     if(normalized.length === 0) return "";
 
     const holidayItems = normalized.map(item =>
-      formatHolidayDateLine(item.date, item.name, studentLocation, timeZone)
+      formatHolidayDateLine(item.date, item.name, studentLocation, timeZone, classTime24)
     );
 
     return `• 휴강 일정 : ${holidayItems.join(", ")}\n`;
@@ -1386,9 +1390,9 @@ ${noteLine ? noteLine + "\n" : ""}`;
       }
     }
 
-    const closedBlock = buildClosedScheduleBlock(studentLocation, tz);
+    const closedBlock = buildClosedScheduleBlock(studentLocation, tz, parsed);
 
-    const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz);
+    const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz, parsed);
     const scheduleTitle =
       siblingType === "SISTER"
         ? `[${studentName} 클래스 일정]`
