@@ -131,17 +131,30 @@
   <section class="card">
     <h2>입력</h2>
 
-    <div class="row3">
+    <div class="row">
+      <div>
+        <label for="messageType">메시지 종류</label>
+        <select id="messageType">
+          <option value="CLASS">클래스</option>
+          <option value="MAKEUP_40">보강</option>
+          <option value="MAKEUP_30">보충</option>
+          <option value="TRIAL">트라이얼</option>
+        </select>
+        <div class="note small">클래스는 기존 장기 수업 안내, 보강/보충/트라이얼은 단일 일정 안내로 생성됩니다.</div>
+      </div>
+      <div>
+        <label for="templateType">클래스 구분</label>
+        <select id="templateType">
+          <option value="PC">PC 외 기타 클래스</option>
+          <option value="DIGITAL_DRAWING">디지털 드로잉</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
       <div>
         <label for="studentName">이름</label>
         <input id="studentName" type="text" placeholder="예: 홍길동" />
-      </div>
-      <div>
-        <label for="templateType">양식 선택</label>
-        <select id="templateType">
-          <option value="PC">PC</option>
-          <option value="DIGITAL_DRAWING">디지털 드로잉</option>
-        </select>
       </div>
       <div>
         <label for="classType">1:1 / 그룹</label>
@@ -177,11 +190,11 @@
 
     <div class="row">
       <div>
-        <label for="startDay">클래스 시작일(필수)</label>
+        <label for="startDay">시작일 / 일정일(필수)</label>
         <input id="startDay" type="date" />
       </div>
       <div>
-        <label for="endDay">클래스 종료일(필수)</label>
+        <label for="endDay">클래스 종료일(클래스만 필수)</label>
         <input id="endDay" type="date" />
       </div>
     </div>
@@ -1169,6 +1182,104 @@ ${firstLine}
 • 수업 전 카카오톡 알림 발송`;
   }
 
+  function buildSimpleParticipationGuide(templateType){
+    if(templateType === "DIGITAL_DRAWING"){
+      return `[수업 참여 안내]
+• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
+• 앱 다운로드 및 애플 펜슬 충전 필수 *(갤럭시탭인 경우) S펜 사전 준비
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    return `[수업 참여 안내]
+• 수업 시작 5분 전 접속 권장
+• 수업 전 카카오톡 알림 발송`;
+  }
+
+  function buildTrialParticipationGuide(templateType, deviceType){
+    if(templateType === "DIGITAL_DRAWING"){
+      return `[수업 참여 안내] *디지털 드로잉 클래스의 경우
+• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
+• ${deviceType === "갤탭" ? "S펜 사전 준비" : "앱 다운로드 및 애플 펜슬 충전 필수"}
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    return `[수업 참여 안내]
+• 수업 시작 5분 전 접속 권장
+• 수업 전 카카오톡 알림 발송`;
+  }
+
+  function formatFullDateLine(flag, isoDate, weekdayKo, amPmKo, timeText){
+    const d = toDateUTC(isoDate);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth()+1).padStart(2,"0");
+    const day = String(d.getUTCDate()).padStart(2,"0");
+    const t = `${stripSi(timeText)} ${koAmPmToEN(amPmKo)}`.trim();
+    return `${flag} ${y}. ${m}. ${day} (${weekdayKo}) ${t}`;
+  }
+
+  function buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag }){
+    const korTimeDisplay = formatTimeDisplayInput(korTimeStr);
+
+    if(studentLocation === "OVERSEAS"){
+      const instant = makeKoreaZonedDate(startDay, parsed.hh, parsed.mm);
+      const local = formatInTimeZone(instant, tz);
+      const localISO = getLocalISODate(instant, tz);
+      const localWeekday = (local.weekday || "").replace("요일", "");
+      const krWeekday = getWeekdayKoFromISO(startDay);
+
+      return `${formatFullDateLine(flag, localISO, localWeekday, local.amPm, local.time)}
+${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
+    }
+
+    return formatFullDateLine("🇰🇷", startDay, weekday, amPm, korTimeDisplay);
+  }
+
+  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, studentName, siblingType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
+    const scheduleLines = buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag });
+
+    if(messageType === "MAKEUP_40" || messageType === "MAKEUP_30"){
+      const title = messageType === "MAKEUP_40" ? "보강" : "보충";
+      const minutes = messageType === "MAKEUP_40" ? "40m" : "30m";
+      const titleLabel = (siblingType === "SISTER" && studentName)
+        ? `${studentName} ${title}`
+        : title;
+
+      return `Affinity Universe: Makeup Class 일정 안내
+
+[${titleLabel}] (${minutes})
+${scheduleLines}
+
+${buildSimpleParticipationGuide(templateType)}
+
+감사합니다.
+Affinity Universe
+`;
+    }
+
+    const learningLinkText = curriculumName === CUSTOM_COURSE_LABEL
+      ? ""
+      : `https://affinityuniverse.com/${curriculumUrl}`;
+
+    const learningProcessText = curriculumName === CUSTOM_COURSE_LABEL
+      ? "개별 맞춤 커리큘럼"
+      : curriculumName;
+
+    return `Affinity Universe: Trial  Class 일정 안내
+
+[트라이얼] (40m or 1h)
+${scheduleLines}
+
+[학습 과정]
+${learningProcessText}
+${learningLinkText}
+
+${buildTrialParticipationGuide(templateType, deviceType)}
+
+감사합니다.
+Affinity Universe
+`;
+  }
+
   function getAdditionalGuideText(curriculumName){
     if(curriculumName === "비디오 BASIC" || curriculumName === "비디오 PRO" || curriculumName === "비디오 EDITOR"){
       return `[CapCut 사전 안내]
@@ -1206,7 +1317,7 @@ Step 4. 사진 구성
     }
 
     const startDay = $("startDay").value;
-    const endDay = $("endDay").value;
+    const endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
     const weekday = $("weekday").value;
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
@@ -1243,6 +1354,7 @@ Step 4. 사진 구성
    * 메시지 생성
    *********************/
   function buildMessage(){
+    const messageType = $("messageType").value;
     const templateType = $("templateType").value;
     const studentName = $("studentName").value.trim();
     const classType = $("classType").value;
@@ -1251,7 +1363,7 @@ Step 4. 사진 구성
     const deviceType = $("deviceType").value;
 
     const startDay = $("startDay").value;
-    const endDay = $("endDay").value;
+    const endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
     const weekday = $("weekday").value;
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
@@ -1262,9 +1374,9 @@ Step 4. 사진 구성
     const studentLocation = $("studentLocation").value;
     const dstMode = $("dstMode").value;
 
-    if(!studentName) return { ok:false, error:"이름을 입력해 주세요." };
-    if(!startDay) return { ok:false, error:"시작일을 선택해 주세요." };
-    if(!endDay) return { ok:false, error:"종료일을 선택해 주세요." };
+    if(messageType === "CLASS" && !studentName) return { ok:false, error:"이름을 입력해 주세요." };
+    if(!startDay) return { ok:false, error:"시작일/일정일을 선택해 주세요." };
+    if(messageType === "CLASS" && !endDay) return { ok:false, error:"클래스 종료일을 선택해 주세요." };
     if(!korTimeStr) return { ok:false, error:"한국시간을 입력해 주세요. (예: 7 또는 7:30)" };
 
     const parsed = parseKorTimeTo24h(amPm, korTimeStr);
@@ -1283,6 +1395,27 @@ Step 4. 사진 구성
 
     if(studentLocation === "OVERSEAS" && !tz){
       return { ok:false, error:"해외 수강생은 시간대 설정이 필요합니다." };
+    }
+
+    if(messageType !== "CLASS"){
+      const singleText = buildMakeupOrTrialMessage({
+        messageType,
+        templateType,
+        deviceType,
+        startDay,
+        weekday,
+        amPm,
+        korTimeStr,
+        parsed,
+        studentLocation,
+        tz,
+        flag,
+        studentName,
+        siblingType,
+        curriculumName,
+        curriculumUrl
+      });
+      return { ok:true, text: singleText.replace(/\n{3,}/g, "\n\n").trim() + "\n" };
     }
 
     const timeHeader = `• 수업 시간 : 주 1회 (${classType === "ONE_ON_ONE" ? "40m" : "1h"})\n`;
@@ -1494,6 +1627,20 @@ Affinity Universe
       updateLocalPreview();
     });
 
+    function syncMessageTypeUI(){
+      const v = $("messageType").value;
+      const isSingle = v !== "CLASS";
+      $("endDay").disabled = isSingle;
+      $("endDay").closest("div").style.opacity = isSingle ? "0.45" : "1";
+      document.querySelector('label[for="startDay"]').textContent = isSingle ? "일정일(필수)" : "클래스 시작일(필수)";
+      document.querySelector('label[for="endDay"]').textContent = isSingle ? "종료일 사용 안 함" : "클래스 종료일(필수)";
+      showAlert(v === "CLASS" ? "클래스 일정 양식입니다." : "단일 일정 안내 양식입니다. 출력에는 하루 일정만 표시됩니다.", "ok");
+      updateLocalPreview();
+    }
+
+    $("messageType").addEventListener("change", syncMessageTypeUI);
+    syncMessageTypeUI();
+
     $("countryInput").addEventListener("input", ()=>{
       const ko = $("countryInput").value.trim();
       const isUS = ko === "미국";
@@ -1672,6 +1819,7 @@ Affinity Universe
     });
 
     $("reset").addEventListener("click", ()=>{
+      $("messageType").value = "CLASS";
       $("templateType").value = "PC";
       $("studentName").value = "";
       $("classType").value = "ONE_ON_ONE";
