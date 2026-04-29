@@ -145,7 +145,7 @@
       <div>
         <label for="templateType">클래스 구분</label>
         <select id="templateType">
-          <option value="PC">PC</option>
+          <option value="PC">PC 외 기타 클래스</option>
           <option value="DIGITAL_DRAWING">디지털 드로잉</option>
         </select>
       </div>
@@ -1234,12 +1234,12 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
     return formatFullDateLine("🇰🇷", startDay, weekday, amPm, korTimeDisplay);
   }
 
-  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, studentName, siblingType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
+  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, studentName, siblingType, classType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
     const scheduleLines = buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag });
 
     if(messageType === "MAKEUP_40" || messageType === "MAKEUP_30"){
       const title = messageType === "MAKEUP_40" ? "보강" : "보충";
-      const minutes = messageType === "MAKEUP_40" ? "40m" : "30m";
+      const minutes = messageType === "MAKEUP_40" ? (classType === "GROUP" ? "1h" : "40m") : "30m";
       const titleLabel = (siblingType === "SISTER" && studentName)
         ? `${studentName} ${title}`
         : title;
@@ -1266,7 +1266,7 @@ Affinity Universe
 
     return `Affinity Universe: Trial  Class 일정 안내
 
-[트라이얼] (40m or 1h)
+[트라이얼] (${classType === "GROUP" ? "1h" : "40m"})
 ${scheduleLines}
 
 [학습 과정]
@@ -1412,6 +1412,7 @@ Step 4. 사진 구성
         flag,
         studentName,
         siblingType,
+        classType,
         curriculumName,
         curriculumUrl
       });
