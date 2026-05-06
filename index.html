@@ -1139,7 +1139,9 @@
 
   function updateDeviceVisibility(){
     const curriculumName = $("curriculumSelect").value;
-    $("deviceBox").style.display = DRAWING_DEVICE_COURSES.includes(curriculumName) ? "block" : "none";
+    const templateType = $("templateType")?.value;
+    const shouldShowDevice = DRAWING_DEVICE_COURSES.includes(curriculumName) || templateType === "DIGITAL_DRAWING";
+    $("deviceBox").style.display = shouldShowDevice ? "block" : "none";
   }
 
   /*********************
@@ -1156,7 +1158,7 @@
         : `• 수업 시작 5분 전 접속 권장`;
 
       const deviceLine = deviceType === "갤탭"
-        ? "앱 다운로드 및 S펜 사전 준비"
+        ? "S펜 사전 준비"
         : "앱 다운로드 및 애플 펜슬 충전 필수";
 
       return `[수업 참여 안내]
@@ -1182,11 +1184,27 @@ ${firstLine}
 • 수업 전 카카오톡 알림 발송`;
   }
 
-  function buildSimpleParticipationGuide(templateType){
+  function buildSimpleParticipationGuide(templateType, discord, deviceType){
+    const hasDiscord = discord && discord !== "해당없음";
+
     if(templateType === "DIGITAL_DRAWING"){
+      const firstLine = hasDiscord
+        ? `• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장`
+        : `• 수업 시작 5분 전 접속 권장`;
+
+      const deviceLine = deviceType === "갤탭"
+        ? "S펜 사전 준비"
+        : "앱 다운로드 및 애플 펜슬 충전 필수";
+
       return `[수업 참여 안내]
-• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
-• 앱 다운로드 및 애플 펜슬 충전 필수 *(갤럭시탭인 경우) S펜 사전 준비
+${firstLine}
+• ${deviceLine}
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    if(hasDiscord){
+      return `[수업 참여 안내]
+• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장
 • 수업 전 카카오톡 알림 발송`;
     }
 
@@ -1195,11 +1213,27 @@ ${firstLine}
 • 수업 전 카카오톡 알림 발송`;
   }
 
-  function buildTrialParticipationGuide(templateType, deviceType){
+  function buildTrialParticipationGuide(templateType, discord, deviceType){
+    const hasDiscord = discord && discord !== "해당없음";
+
     if(templateType === "DIGITAL_DRAWING"){
+      const firstLine = hasDiscord
+        ? `• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장`
+        : `• 수업 시작 5분 전 접속 권장`;
+
+      const deviceLine = deviceType === "갤탭"
+        ? "S펜 사전 준비"
+        : "앱 다운로드 및 애플 펜슬 충전 필수";
+
       return `[수업 참여 안내] *디지털 드로잉 클래스의 경우
-• 수업 시작 5분 전, 디스코드 THU(목) 채널 입장
-• ${deviceType === "갤탭" ? "S펜 사전 준비" : "앱 다운로드 및 애플 펜슬 충전 필수"}
+${firstLine}
+• ${deviceLine}
+• 수업 전 카카오톡 알림 발송`;
+    }
+
+    if(hasDiscord){
+      return `[수업 참여 안내]
+• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장
 • 수업 전 카카오톡 알림 발송`;
     }
 
@@ -1249,7 +1283,7 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
 [${titleLabel}] (${minutes})
 ${scheduleLines}
 
-${buildSimpleParticipationGuide(templateType)}
+${buildSimpleParticipationGuide(templateType, discord, deviceType)}
 
 감사합니다.
 Affinity Universe
@@ -1273,7 +1307,7 @@ ${scheduleLines}
 ${learningProcessText}
 ${learningLinkText}
 
-${buildTrialParticipationGuide(templateType, deviceType)}
+${buildTrialParticipationGuide(templateType, discord, deviceType)}
 
 감사합니다.
 Affinity Universe
@@ -1555,8 +1589,7 @@ ${noteLine ? noteLine + "\n" : ""}`;
     const attendancePolicyText = classType === "GROUP"
       ? `[결석 및 보강 정책]
 • 사전 연락 시 : 단계별 1회 무료 보강
-• 당일 취소/보강 요청 : 30,000원
-• 당일 1:1 수업이 될 경우, 40분 진행`
+• 당일 취소/보강 요청 : 30,000원`
       : `[결석 및 보강 정책]
 • 결석 시 : 한 주 휴강 후 기간 자동 연장`;
 
@@ -1638,9 +1671,11 @@ Affinity Universe
       document.querySelector('label[for="endDay"]').textContent = isSingle ? "종료일 사용 안 함" : "클래스 종료일(필수)";
       showAlert(v === "CLASS" ? "클래스 일정 양식입니다." : "단일 일정 안내 양식입니다. 출력에는 하루 일정만 표시됩니다.", "ok");
       updateLocalPreview();
+      updateDeviceVisibility();
     }
 
     $("messageType").addEventListener("change", syncMessageTypeUI);
+    $("templateType").addEventListener("change", updateDeviceVisibility);
     syncMessageTypeUI();
 
     $("countryInput").addEventListener("input", ()=>{
