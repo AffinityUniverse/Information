@@ -1148,8 +1148,12 @@
   /*********************
    * 참여 안내 / 추가 안내
    *********************/
+  const VIDEO_CREATOR_PREP_GUIDE = `[수업 준비 안내]
+• 클래스 진행을 위해 CapCut Pro 유료 결제가 필요합니다.
+• 18세 미만 수강생의 경우, 부모님 계정으로 Google Chrome을 사용해주시기 바랍니다.`;
+
   function buildParticipationGuide(curriculumName, discord, deviceType){
-    const videoCourses = ["비디오 BASIC","비디오 PRO", "비디오 EDITOR"];
+    const videoCourses = ["비디오 BASIC","비디오 PRO", "비디오 EDITOR", "비디오 크리에이터"];
     const hasDiscord = discord && discord !== "해당없음";
     const isDrawingDeviceCourse = DRAWING_DEVICE_COURSES.includes(curriculumName);
 
@@ -1169,9 +1173,17 @@ ${firstLine}
     }
 
     if(videoCourses.includes(curriculumName)){
-      return `[수업 참여 안내]
+      const participationText = `[수업 참여 안내]
 • ${hasDiscord ? `수업 시작 5분 전, 디스코드 ${discord} 채널 입장` : "수업 시작 5분 전 접속 권장"}
 • 수업 전 카카오톡 알림 발송`;
+
+      if(curriculumName === "비디오 크리에이터"){
+        return `${VIDEO_CREATOR_PREP_GUIDE}
+
+${participationText}`;
+      }
+
+      return participationText;
     }
 
     if(hasDiscord){
