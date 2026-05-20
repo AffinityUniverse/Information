@@ -145,7 +145,7 @@
       <div>
         <label for="templateType">클래스 구분</label>
         <select id="templateType">
-          <option value="PC">PC 외 기타 클래스</option>
+          <option value="PC">PC</option>
           <option value="DIGITAL_DRAWING">디지털 드로잉</option>
         </select>
       </div>
@@ -1145,6 +1145,20 @@
     $("deviceBox").style.display = shouldShowDevice ? "block" : "none";
   }
 
+  function updateDiscordAvailability(){
+    const isMakeupPc = $("messageType").value === "MAKEUP_40" && $("templateType").value === "PC";
+    const discordSelect = $("discord");
+
+    if(isMakeupPc){
+      discordSelect.value = "해당없음";
+      discordSelect.disabled = true;
+      discordSelect.title = "PC 보강 수업은 디스코드 안내가 제외됩니다.";
+    }else{
+      discordSelect.disabled = false;
+      discordSelect.title = "";
+    }
+  }
+
   /*********************
    * 참여 안내 / 추가 안내
    *********************/
@@ -1406,8 +1420,13 @@ Step 4. 사진 구성
     const studentName = $("studentName").value.trim();
     const classType = $("classType").value;
     const siblingType = $("siblingType").value;
-    const discord = $("discord").value.trim();
+    let discord = $("discord").value.trim();
     const deviceType = $("deviceType").value;
+
+    // 메시지 종류가 보강이고 PC 수업이면 디스코드 안내를 강제로 제외합니다.
+    if(messageType === "MAKEUP_40" && templateType === "PC"){
+      discord = "해당없음";
+    }
 
     const startDay = $("startDay").value;
     const endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
@@ -1685,11 +1704,16 @@ Affinity Universe
       showAlert(v === "CLASS" ? "클래스 일정 양식입니다." : "단일 일정 안내 양식입니다. 출력에는 하루 일정만 표시됩니다.", "ok");
       updateLocalPreview();
       updateDeviceVisibility();
+      updateDiscordAvailability();
     }
 
     $("messageType").addEventListener("change", syncMessageTypeUI);
-    $("templateType").addEventListener("change", updateDeviceVisibility);
+    $("templateType").addEventListener("change", ()=>{
+      updateDeviceVisibility();
+      updateDiscordAvailability();
+    });
     syncMessageTypeUI();
+    updateDiscordAvailability();
 
     $("countryInput").addEventListener("input", ()=>{
       const ko = $("countryInput").value.trim();
