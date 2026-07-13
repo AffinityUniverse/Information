@@ -1297,11 +1297,11 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
     return formatFullDateLine("🇰🇷", startDay, weekday, amPm, korTimeDisplay);
   }
 
-  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, studentName, siblingType, classType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
+  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, discord, studentName, siblingType, classType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
     const scheduleLines = buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag });
 
     if(messageType === "MAKEUP_40" || messageType === "MAKEUP_30"){
-      //(임의) const title = messageType === "MAKEUP_40" ? "보강" : "보충";
+      const title = messageType === "MAKEUP_40" ? "보강" : "보충";
       const minutes = messageType === "MAKEUP_40" ? (classType === "GROUP" ? "1h" : "40m") : "30m";
       const titleLabel = (siblingType === "SISTER" && studentName)
         ? `${studentName} ${title}`
@@ -1470,6 +1470,7 @@ Step 4. 사진 구성
         messageType,
         templateType,
         deviceType,
+        discord,
         startDay,
         weekday,
         amPm,
@@ -1620,17 +1621,6 @@ ${noteLine ? noteLine + "\n" : ""}`;
       ? ""
       : `https://affinityuniverse.com/${curriculumUrl}`;
 
-    const attendancePolicyText = classType === "GROUP"
-      ? `[일정 변경 및 노쇼 안내]
-* 일정 변경 : 최소 1일 전 요청 시, 단계별 1회 무료 보강
-* 사전 연락 없는 노쇼 시 해당 회차 자동 차감 (이월 불가)
-* 보강 신청 : 30,000원
-* 당일 참여 인원 변동으로 1:1 수업 전환 시 40분 진행`
-      : `[일정 변경 및 노쇼 안내]
-* 일정 변경 : 최소 1일 전 요청 시, 다음 주로 리스케줄 가능
-* 사전 연락 없는 노쇼 시 해당 회차 자동 차감 (이월 불가)
-* 보강 신청 : 30,000원`;
-
     const msg =
 `${introLine}
 
@@ -1641,9 +1631,7 @@ ${closedBlock}${timeLine}
 ${learningProcessText}
 ${learningLinkText}
 
-${participationGuideText}
-
-${attendancePolicyText}${additionalGuideText ? `
+${participationGuideText}${additionalGuideText ? `
 
 ${additionalGuideText}` : ""}
 
