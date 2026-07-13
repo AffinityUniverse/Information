@@ -1301,7 +1301,7 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
     const scheduleLines = buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag });
 
     if(messageType === "MAKEUP_40" || messageType === "MAKEUP_30"){
-      const title = messageType === "MAKEUP_40" ? "보강" : "보충";
+      //(임의) const title = messageType === "MAKEUP_40" ? "보강" : "보충";
       const minutes = messageType === "MAKEUP_40" ? (classType === "GROUP" ? "1h" : "40m") : "30m";
       const titleLabel = (siblingType === "SISTER" && studentName)
         ? `${studentName} ${title}`
