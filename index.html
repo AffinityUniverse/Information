@@ -195,8 +195,26 @@
         <input id="startDay" type="date" />
       </div>
       <div>
-        <label for="endDay">클래스 종료일(클래스만 필수)</label>
+        <label for="endDay">클래스 종료일(선택)</label>
         <input id="endDay" type="date" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="lessonCount">수업 회차(종강일 미입력 시 필수)</label>
+        <select id="lessonCount">
+          <option value="">종강일 직접 입력 시 선택 안 함</option>
+          <option value="4">4강</option>
+          <option value="8">8강</option>
+          <option value="10">10강</option>
+          <option value="12">12강</option>
+        </select>
+        <div class="note small">종강일을 비우면 선택한 회차와 휴강일을 반영해 예상 종강일을 계산합니다.</div>
+      </div>
+      <div>
+        <label for="expectedEndPreview">예상 종강일 미리보기</label>
+        <input id="expectedEndPreview" type="text" readonly placeholder="시작일·요일·회차 선택 시 자동 계산" />
       </div>
     </div>
 
@@ -516,7 +534,7 @@
     { name:"Georgia", ko:"조지아", tzOptions:["America/New_York"] },
     { name:"Hawaii", ko:"하와이", tzOptions:["Pacific/Honolulu"] },
     { name:"Idaho", ko:"아이다호", tzOptions:["America/Denver","America/Los_Angeles"] },
-    { name:"Illinois", ko:"일리노이", tzOptions:["America/Chicago"] },
+    { name:"Illinois", ko:"일리노이", city:"시카고", tzOptions:["America/Chicago"] },
     { name:"Indiana", ko:"인디애나", tzOptions:["America/New_York","America/Chicago"] },
     { name:"Iowa", ko:"아이오와", tzOptions:["America/Chicago"] },
     { name:"Kansas", ko:"캔자스", tzOptions:["America/Chicago","America/Denver"] },
@@ -891,16 +909,12 @@
   }
 
   function formatHolidayDateLine(dateISO, holidayName, studentLocation, timeZone, classTime24){
-    let localISO = dateISO;
-    if(studentLocation === "OVERSEAS" && timeZone){
-      const hh = classTime24?.hh ?? 12;
-      const mm = classTime24?.mm ?? 0;
-      localISO = getLocalISODate(makeKoreaZonedDate(dateISO, hh, mm), timeZone);
-    }
-    const d = toDateUTC(localISO);
+    // 한국 공휴일은 특정 시각이 아닌 한국 달력의 날짜입니다.
+    // 해외 시간대로 변환하지 않아 토요일 공휴일이 다른 날짜로 이동하는 현상을 방지합니다.
+    const d = toDateUTC(dateISO);
     const m = String(d.getUTCMonth() + 1).padStart(2, "0");
     const day = String(d.getUTCDate()).padStart(2, "0");
-    const weekday = getWeekdayKoFromISO(localISO);
+    const weekday = getWeekdayKoFromISO(dateISO);
 
     if(studentLocation === "OVERSEAS"){
       return `${m}. ${day}(${weekday}, 한국 공휴일)`;
@@ -908,6 +922,22 @@
     return holidayName
       ? `${m}. ${day}(${weekday}, ${holidayName})`
       : `${m}. ${day}(${weekday})`;
+  }
+
+  function formatScheduleDateWithWeekday(dateISO, studentLocation, timeZone, classTime24){
+    let displayISO = dateISO;
+    if(studentLocation === "OVERSEAS" && timeZone){
+      const hh = classTime24?.hh ?? 12;
+      const mm = classTime24?.mm ?? 0;
+      displayISO = getLocalISODate(makeKoreaZonedDate(dateISO, hh, mm), timeZone);
+    }
+
+    const d = toDateUTC(displayISO);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const weekday = getWeekdayKoFromISO(displayISO);
+    return `${y}. ${m}. ${day} (${weekday})`;
   }
 
   function formatTimeDisplayInput(korTimeStr){
@@ -983,15 +1013,105 @@
     closedList = normalizeClosedList(closedList);
   }
 
-  function buildClosedScheduleBlock(studentLocation, timeZone, classTime24){
-    const normalized = normalizeClosedList(closedList);
+  function getCheckedFetchedHolidays(){
+    const box = $("holidayList");
+    if(!box) return [];
+
+    return Array.from(box.querySelectorAll("input[type=checkbox][data-idx]:checked"))
+      .map(ch => fetchedHolidays[Number(ch.dataset.idx)])
+      .filter(Boolean)
+      .map(h => ({ date:h.date, name:h.localName || h.name || "공휴일" }));
+  }
+
+  function getEffectiveClosedList(){
+    return normalizeClosedList([...closedList, ...getCheckedFetchedHolidays()]);
+  }
+
+  function calculateExpectedEndDate(startISO, weekdayKo, lessonCount, closedItems){
+    const count = Number(lessonCount);
+    if(!startISO || ![4,8,10,12].includes(count)) return null;
+
+    const start = toDateUTC(startISO);
+    const targetDay = WEEKDAY_TO_NUM[weekdayKo];
+    if(isNaN(start) || targetDay === undefined) return null;
+
+    let cur = new Date(start.getTime());
+    while(cur.getUTCDay() !== targetDay) cur = addDaysUTC(cur, 1);
+
+    const closedDates = new Set(normalizeClosedList(closedItems).map(x => x.date));
+    let completed = 0;
+    let guard = 0;
+
+    while(completed < count && guard < 520){
+      const iso = dateToISO_UTC(cur);
+      if(!closedDates.has(iso)) completed++;
+      if(completed === count) return iso;
+      cur = addDaysUTC(cur, 7);
+      guard++;
+    }
+
+    return null;
+  }
+
+  function getHolidayFetchEndDate(startISO, weekdayKo, lessonCount){
+    const count = Number(lessonCount);
+    if(!startISO || ![4,8,10,12].includes(count)) return "";
+
+    const provisionalEnd = calculateExpectedEndDate(startISO, weekdayKo, count, closedList);
+    if(!provisionalEnd) return "";
+
+    // 연속 공휴일이나 추가 휴강으로 종강일이 밀리는 경우까지 포함하도록 12주 여유를 둡니다.
+    return dateToISO_UTC(addDaysUTC(toDateUTC(provisionalEnd), 12 * 7));
+  }
+
+  function updateExpectedEndPreview(){
+    const preview = $("expectedEndPreview");
+    if(!preview) return;
+
+    if($("messageType").value !== "CLASS"){
+      preview.value = "단일 일정에는 사용하지 않음";
+      return;
+    }
+
+    if($("endDay").value){
+      preview.value = "종강일 직접 입력됨";
+      return;
+    }
+
+    const lessonCount = Number($("lessonCount").value);
+    if(![4,8,10,12].includes(lessonCount)){
+      preview.value = "";
+      return;
+    }
+
+    const expected = calculateExpectedEndDate(
+      $("startDay").value,
+      $("weekday").value,
+      lessonCount,
+      getEffectiveClosedList()
+    );
+
+    preview.value = expected
+      ? `${expected} (${getWeekdayKoFromISO(expected)})`
+      : "계산할 수 없음";
+  }
+
+  function buildClosedScheduleBlock(items, studentLocation, timeZone, classTime24){
+    const normalized = normalizeClosedList(items);
     if(normalized.length === 0) return "";
 
     const holidayItems = normalized.map(item =>
       formatHolidayDateLine(item.date, item.name, studentLocation, timeZone, classTime24)
     );
 
-    return `• 휴강 일정 : ${holidayItems.join(", ")}\n`;
+    if(holidayItems.length === 1){
+      return `• 휴강 일정 : ${holidayItems[0]}
+`;
+    }
+
+    return `• 휴강 일정
+${holidayItems.map(item => `  - ${item}`).join("\n")}
+`;
   }
 
   /*********************
@@ -1002,10 +1122,11 @@
     const end = toDateUTC(endISO);
     if(isNaN(start) || isNaN(end)) throw new Error("날짜가 올바르지 않습니다.");
 
-    const years = new Set([start.getUTCFullYear(), end.getUTCFullYear()]);
     const all = [];
+    const startYear = start.getUTCFullYear();
+    const endYear = end.getUTCFullYear();
 
-    for(const y of years){
+    for(let y = startYear; y <= endYear; y++){
       const url = `https://date.nager.at/api/v3/PublicHolidays/${y}/KR`;
       const res = await fetch(url);
       if(!res.ok) throw new Error(`공휴일 API 호출 실패(${y})`);
@@ -1034,7 +1155,7 @@
       const label = `${m}/${day}(${w}) - ${h.localName || h.name || "공휴일"}`;
       return `
         <div class="checkboxRow">
-          <input type="checkbox" id="h_${i}" data-idx="${i}" checked />
+          <input type="checkbox" id="h_${i}" data-idx="${i}" />
           <label for="h_${i}" style="margin:0; color:inherit; font-size:12px; line-height:1.35">${label}</label>
         </div>
       `;
@@ -1087,7 +1208,7 @@
     US_STATES.forEach(s=>{
       const opt = document.createElement("option");
       opt.value = s.name;
-      opt.textContent = `${s.ko}주 (${s.name})`;
+      opt.textContent = s.city ? `${s.ko}주 / ${s.city} (${s.name})` : `${s.ko}주 (${s.name})`;
       sel.appendChild(opt);
     });
   }
@@ -1126,6 +1247,9 @@
     }
     setSelectOptions($("tzSelect"), s.tzOptions, s.tzOptions.length > 1 ? "시간대(주 내부 분할)" : "시간대");
     if(s.tzOptions.length) $("tzSelect").value = s.tzOptions[0];
+    $("usTzHint").value = s.city
+      ? `${s.ko}주 / ${s.city} · ${s.tzOptions.join(", ")}`
+      : `${s.ko}주 · ${s.tzOptions.join(", ")}`;
   }
 
   function applyAURegionToTzOptions(regionCode){
@@ -1380,8 +1504,13 @@ Step 4. 사진 구성
     }
 
     const startDay = $("startDay").value;
-    const endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
+    let endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
     const weekday = $("weekday").value;
+
+    if($("messageType")?.value === "CLASS" && !endDay){
+      const lessonCount = Number($("lessonCount").value);
+      endDay = calculateExpectedEndDate(startDay, weekday, lessonCount, getEffectiveClosedList()) || "";
+    }
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
     const tz = $("tzSelect").value;
@@ -1431,7 +1560,7 @@ Step 4. 사진 구성
     }
 
     const startDay = $("startDay").value;
-    const endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
+    let endDay = $("messageType")?.value === "CLASS" ? $("endDay").value : $("startDay").value;
     const weekday = $("weekday").value;
     const amPm = $("amPm").value;
     const korTimeStr = $("korTime").value.trim();
@@ -1444,7 +1573,23 @@ Step 4. 사진 구성
 
     if(messageType === "CLASS" && !studentName) return { ok:false, error:"이름을 입력해 주세요." };
     if(!startDay) return { ok:false, error:"시작일/일정일을 선택해 주세요." };
-    if(messageType === "CLASS" && !endDay) return { ok:false, error:"클래스 종료일을 선택해 주세요." };
+
+    const effectiveClosedList = getEffectiveClosedList();
+    const lessonCount = Number($("lessonCount").value);
+    let isExpectedEnd = false;
+
+    if(messageType === "CLASS" && !endDay){
+      if(![4,8,10,12].includes(lessonCount)){
+        return { ok:false, error:"종강일을 비운 경우 수업 회차(4강/8강/10강/12강)를 선택해 주세요." };
+      }
+
+      endDay = calculateExpectedEndDate(startDay, weekday, lessonCount, effectiveClosedList);
+      if(!endDay){
+        return { ok:false, error:"휴강일을 반영한 예상 종강일을 계산하지 못했습니다." };
+      }
+      isExpectedEnd = true;
+    }
+
     if(!korTimeStr) return { ok:false, error:"한국시간을 입력해 주세요. (예: 7 또는 7:30)" };
 
     const parsed = parseKorTimeTo24h(amPm, korTimeStr);
@@ -1594,9 +1739,14 @@ ${noteLine ? noteLine + "\n" : ""}`;
       }
     }
 
-    const closedBlock = buildClosedScheduleBlock(studentLocation, tz, parsed);
+    const closedBlock = buildClosedScheduleBlock(effectiveClosedList, studentLocation, tz, parsed);
 
     const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz, parsed);
+    const expectedEndLine = isExpectedEnd
+      ? `• 수업 회차 : ${lessonCount}강
+• (예상) 종강일 : ${formatScheduleDateWithWeekday(endDay, studentLocation, tz, parsed)}
+`
+      : "";
     const scheduleTitle =
       siblingType === "SISTER"
         ? `[${studentName} 클래스 일정]`
@@ -1626,7 +1776,7 @@ ${noteLine ? noteLine + "\n" : ""}`;
 
 ${scheduleTitle}
 • 수업 기간 : ${periodRangeText}
-${closedBlock}${timeLine}
+${expectedEndLine}${closedBlock}${timeLine}
 [학습 과정]
 ${learningProcessText}
 ${learningLinkText}
@@ -1673,9 +1823,15 @@ Affinity Universe
   function bind(){
     const rePreview = () => updateLocalPreview();
 
-    ["startDay","endDay","weekday","amPm","korTime","tzSelect","studentLocation"].forEach(id=>{
-      $(id).addEventListener("input", rePreview);
-      $(id).addEventListener("change", rePreview);
+    ["startDay","endDay","weekday","amPm","korTime","tzSelect","studentLocation","lessonCount"].forEach(id=>{
+      $(id).addEventListener("input", ()=>{
+        rePreview();
+        updateExpectedEndPreview();
+      });
+      $(id).addEventListener("change", ()=>{
+        rePreview();
+        updateExpectedEndPreview();
+      });
     });
 
     $("studentLocation").addEventListener("change", ()=>{
@@ -1693,10 +1849,13 @@ Affinity Universe
       const isSingle = v !== "CLASS";
       $("endDay").disabled = isSingle;
       $("endDay").closest("div").style.opacity = isSingle ? "0.45" : "1";
+      $("lessonCount").disabled = isSingle;
+      $("lessonCount").closest("div").style.opacity = isSingle ? "0.45" : "1";
       document.querySelector('label[for="startDay"]').textContent = isSingle ? "일정일(필수)" : "클래스 시작일(필수)";
-      document.querySelector('label[for="endDay"]').textContent = isSingle ? "종료일 사용 안 함" : "클래스 종료일(필수)";
+      document.querySelector('label[for="endDay"]').textContent = isSingle ? "종료일 사용 안 함" : "클래스 종료일(선택)";
       showAlert(v === "CLASS" ? "클래스 일정 양식입니다." : "단일 일정 안내 양식입니다. 출력에는 하루 일정만 표시됩니다.", "ok");
       updateLocalPreview();
+      updateExpectedEndPreview();
       updateDeviceVisibility();
       updateDiscordAvailability();
     }
@@ -1727,7 +1886,10 @@ Affinity Universe
     $("usStateSelect").addEventListener("change", ()=>{
       const stateName = $("usStateSelect").value;
       if(stateName) applyUSStateToTzOptions(stateName);
-      else applyCountryToTzOptions("미국");
+      else{
+        applyCountryToTzOptions("미국");
+        $("usTzHint").value = "주 선택 → 시간대 자동/추천";
+      }
       updateLocalPreview();
     });
 
@@ -1805,27 +1967,50 @@ Affinity Universe
       }
 
       renderClosedPreview();
+      updateExpectedEndPreview();
       showAlert("휴강일이 추가/갱신되었습니다.", "ok");
     });
 
     $("clearClosed").addEventListener("click", ()=>{
       closedList = [];
       renderClosedPreview();
+      updateExpectedEndPreview();
       showAlert("휴강일이 전체 삭제되었습니다.", "ok");
     });
 
     $("fetchHolidays").addEventListener("click", async ()=>{
       const start = $("startDay").value;
-      const end = $("endDay").value;
-      if(!start || !end){
-        showAlert("공휴일을 불러오려면 시작일/종료일이 필요합니다.", "warn");
+      let end = $("endDay").value;
+      let usedEstimatedRange = false;
+
+      if(!start){
+        showAlert("공휴일을 불러오려면 시작일이 필요합니다.", "warn");
         return;
       }
+
+      if(!end){
+        const lessonCount = Number($("lessonCount").value);
+        if(![4,8,10,12].includes(lessonCount)){
+          showAlert("종강일을 비운 경우 먼저 수업 회차를 선택해 주세요.", "warn");
+          return;
+        }
+        end = getHolidayFetchEndDate(start, $("weekday").value, lessonCount);
+        usedEstimatedRange = true;
+      }
+
+      let fetchStart = start;
+      let fetchEnd = end;
+      if(fetchStart > fetchEnd) [fetchStart, fetchEnd] = [fetchEnd, fetchStart];
+
       $("holidayList").textContent = "불러오는 중...";
       try{
-        fetchedHolidays = await fetchKoreanHolidaysBetween(start, end);
+        fetchedHolidays = await fetchKoreanHolidaysBetween(fetchStart, fetchEnd);
         renderHolidayList();
-        showAlert(`공휴일 ${fetchedHolidays.length}개를 불러왔습니다.`, "ok");
+        updateExpectedEndPreview();
+        showAlert(
+          `공휴일 ${fetchedHolidays.length}개를 불러왔습니다.${usedEstimatedRange ? " 예상 종강 범위를 포함해 조회했습니다." : ""}`,
+          "ok"
+        );
       }catch(e){
         $("holidayList").textContent = "불러오기 실패";
         showAlert(`공휴일 불러오기 실패: ${e.message}`, "bad");
@@ -1851,7 +2036,14 @@ Affinity Universe
       });
 
       renderClosedPreview();
+      updateExpectedEndPreview();
       showAlert(`선택 공휴일 ${added}개를 휴강일에 추가했습니다.`, "ok");
+    });
+
+    $("holidayList").addEventListener("change", (e)=>{
+      if(e.target.matches('input[type="checkbox"][data-idx]')){
+        updateExpectedEndPreview();
+      }
     });
 
     $("curriculumSelect").addEventListener("change", ()=>{
@@ -1896,6 +2088,8 @@ Affinity Universe
       $("deviceType").value = "아이패드";
       $("startDay").value = "";
       $("endDay").value = "";
+      $("lessonCount").value = "";
+      $("expectedEndPreview").value = "";
       $("weekday").value = "월";
       $("amPm").value = "오전";
       $("korTime").value = "";
@@ -1932,6 +2126,7 @@ Affinity Universe
 
       syncClosedNamePresetByLocation();
       updateLocalPreview();
+      updateExpectedEndPreview();
       showAlert("초기화되었습니다.", "ok");
     });
   }
@@ -1948,6 +2143,7 @@ Affinity Universe
     $("curriculumSelect").dispatchEvent(new Event("change"));
     syncClosedNamePresetByLocation();
     updateLocalPreview();
+    updateExpectedEndPreview();
     updateDeviceVisibility();
   }
 
