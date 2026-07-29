@@ -917,11 +917,11 @@
     const weekday = getWeekdayKoFromISO(dateISO);
 
     if(studentLocation === "OVERSEAS"){
-      return `${m}. ${day}(${weekday}, 한국 공휴일)`;
+      return `${m}. ${day} (${weekday}, 한국 공휴일)`;
     }
     return holidayName
-      ? `${m}. ${day}(${weekday}, ${holidayName})`
-      : `${m}. ${day}(${weekday})`;
+      ? `${m}. ${day} (${weekday}, ${holidayName})`
+      : `${m}. ${day} (${weekday})`;
   }
 
   function formatScheduleDateWithWeekday(dateISO, studentLocation, timeZone, classTime24){
@@ -1105,12 +1105,13 @@
     );
 
     if(holidayItems.length === 1){
-      return `• 휴강 일정 : ${holidayItems[0]}
+      return `• 휴강 일정 :
+- ${holidayItems[0]}
 `;
     }
 
-    return `• 휴강 일정
-${holidayItems.map(item => `  - ${item}`).join("\n")}
+    return `• 휴강 일정 :
+${holidayItems.map(item => `- ${item}`).join("\n")}
 `;
   }
 
@@ -1742,11 +1743,8 @@ ${noteLine ? noteLine + "\n" : ""}`;
     const closedBlock = buildClosedScheduleBlock(effectiveClosedList, studentLocation, tz, parsed);
 
     const periodRangeText = formatPeriodRange(displayStartISO, displayEndISO, tz, parsed);
-    const expectedEndLine = isExpectedEnd
-      ? `• 수업 회차 : ${lessonCount}강
-• (예상) 종강일 : ${formatScheduleDateWithWeekday(endDay, studentLocation, tz, parsed)}
-`
-      : "";
+    // 예상 종강일은 수업 기간 계산에만 사용하고, 최종 안내 문구에는 표시하지 않습니다.
+    const expectedEndLine = "";
     const scheduleTitle =
       siblingType === "SISTER"
         ? `[${studentName} 클래스 일정]`
@@ -1776,7 +1774,9 @@ ${noteLine ? noteLine + "\n" : ""}`;
 
 ${scheduleTitle}
 • 수업 기간 : ${periodRangeText}
-${expectedEndLine}${closedBlock}${timeLine}
+${closedBlock ? `
+${closedBlock}` : ""}${timeLine ? `
+${timeLine}` : ""}
 [학습 과정]
 ${learningProcessText}
 ${learningLinkText}
