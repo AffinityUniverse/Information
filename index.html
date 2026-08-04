@@ -384,10 +384,16 @@
           <label for="deviceType">기기</label>
           <select id="deviceType">
             <option value="아이패드">아이패드</option>
-            <option value="갤탭">갤탭</option>
+            <option value="갤탭">갤럭시 탭</option>
           </select>
         </div>
-        <div></div>
+        <div>
+          <label for="drawingCourseStage">디지털 드로잉 수강 단계</label>
+          <select id="drawingCourseStage">
+            <option value="CONTINUING">이후 코스 (기기·펜 충전 안내만)</option>
+            <option value="FIRST">최초 코스 (앱 다운로드 안내 포함)</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1302,7 +1308,18 @@ ${holidayItems.map(item => `- ${item}`).join("\n")}
 • 클래스 진행을 위해 CapCut Pro 유료 결제가 필요합니다.
 • 18세 미만 수강생의 경우, 부모님 계정으로 Google Chrome을 사용해주시기 바랍니다.`;
 
-  function buildParticipationGuide(curriculumName, discord, deviceType){
+  function buildDrawingDeviceLine(drawingCourseStage, deviceType){
+    const isFirstCourse = drawingCourseStage === "FIRST";
+    const deviceAndPen = deviceType === "갤탭"
+      ? "갤럭시 탭과 S펜 충전 필수"
+      : "아이패드와 애플 펜슬 충전 필수";
+
+    return isFirstCourse
+      ? `앱 다운로드 및 ${deviceAndPen}`
+      : deviceAndPen;
+  }
+
+  function buildParticipationGuide(curriculumName, discord, deviceType, drawingCourseStage){
     const videoCourses = ["비디오 BASIC","비디오 PRO", "비디오 EDITOR", "비디오 크리에이터"];
     const hasDiscord = discord && discord !== "해당없음";
     const isDrawingDeviceCourse = DRAWING_DEVICE_COURSES.includes(curriculumName);
@@ -1312,9 +1329,7 @@ ${holidayItems.map(item => `- ${item}`).join("\n")}
         ? `• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장`
         : `• 수업 시작 5분 전 접속 권장`;
 
-      const deviceLine = deviceType === "갤탭"
-        ? "앱 다운로드 및 S펜 사전 준비"
-        : "앱 다운로드 및 애플 펜슬 충전 필수";
+      const deviceLine = buildDrawingDeviceLine(drawingCourseStage, deviceType);
 
       return `[수업 참여 안내]
 ${firstLine}
@@ -1347,7 +1362,7 @@ ${participationText}`;
 • 수업 전 카카오톡 알림 발송`;
   }
 
-  function buildSimpleParticipationGuide(templateType, discord, deviceType){
+  function buildSimpleParticipationGuide(templateType, curriculumName, discord, deviceType, drawingCourseStage){
     const hasDiscord = discord && discord !== "해당없음";
 
     if(templateType === "DIGITAL_DRAWING"){
@@ -1355,9 +1370,7 @@ ${participationText}`;
         ? `• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장`
         : `• 수업 시작 5분 전 접속 권장`;
 
-      const deviceLine = deviceType === "갤탭"
-        ? "앱 다운로드 및 S펜 사전 준비"
-        : "앱 다운로드 및 애플 펜슬 충전 필수";
+      const deviceLine = buildDrawingDeviceLine(drawingCourseStage, deviceType);
 
       return `[수업 참여 안내]
 ${firstLine}
@@ -1376,7 +1389,7 @@ ${firstLine}
 • 수업 전 카카오톡 알림 발송`;
   }
 
-  function buildTrialParticipationGuide(templateType, discord, deviceType){
+  function buildTrialParticipationGuide(templateType, curriculumName, discord, deviceType, drawingCourseStage){
     const hasDiscord = discord && discord !== "해당없음";
 
     if(templateType === "DIGITAL_DRAWING"){
@@ -1384,9 +1397,7 @@ ${firstLine}
         ? `• 수업 시작 5분 전, 디스코드 ${discord} 채널 입장`
         : `• 수업 시작 5분 전 접속 권장`;
 
-      const deviceLine = deviceType === "갤탭"
-        ? "앱 다운로드 및 S펜 사전 준비"
-        : "앱 다운로드 및 애플 펜슬 충전 필수";
+      const deviceLine = buildDrawingDeviceLine(drawingCourseStage, deviceType);
 
       return `[수업 참여 안내] *디지털 드로잉 클래스의 경우
 ${firstLine}
@@ -1431,7 +1442,7 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
     return formatFullDateLine("🇰🇷", startDay, weekday, amPm, korTimeDisplay);
   }
 
-  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, discord, studentName, siblingType, classType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
+  function buildMakeupOrTrialMessage({ messageType, templateType, deviceType, drawingCourseStage, discord, studentName, siblingType, classType, startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag, curriculumName, curriculumUrl }){
     const scheduleLines = buildSingleScheduleLines({ startDay, weekday, amPm, korTimeStr, parsed, studentLocation, tz, flag });
 
     if(messageType === "MAKEUP_40" || messageType === "MAKEUP_30"){
@@ -1446,7 +1457,7 @@ ${formatFullDateLine("🇰🇷", startDay, krWeekday, amPm, korTimeDisplay)}`;
 [${titleLabel}] (${minutes})
 ${scheduleLines}
 
-${buildSimpleParticipationGuide(templateType, discord, deviceType)}
+${buildSimpleParticipationGuide(templateType, curriculumName, discord, deviceType, drawingCourseStage)}
 
 감사합니다.
 Affinity Universe
@@ -1470,7 +1481,7 @@ ${scheduleLines}
 ${learningProcessText}
 ${learningLinkText}
 
-${buildTrialParticipationGuide(templateType, discord, deviceType)}
+${buildTrialParticipationGuide(templateType, curriculumName, discord, deviceType, drawingCourseStage)}
 
 감사합니다.
 Affinity Universe
@@ -1563,6 +1574,7 @@ Step 4. 사진 구성
     const siblingType = $("siblingType").value;
     let discord = $("discord").value.trim();
     const deviceType = $("deviceType").value;
+    const drawingCourseStage = $("drawingCourseStage").value;
 
     // 메시지 종류가 보강이고 PC 수업이면 디스코드 안내를 강제로 제외합니다.
     if(messageType === "MAKEUP_40" && templateType === "PC"){
@@ -1625,6 +1637,7 @@ Step 4. 사진 구성
         messageType,
         templateType,
         deviceType,
+        drawingCourseStage,
         discord,
         startDay,
         weekday,
@@ -1758,7 +1771,7 @@ ${noteLine ? noteLine + "\n" : ""}`;
       siblingType === "SISTER"
         ? `[${studentName} 클래스 일정]`
         : `[클래스 일정]`;
-    const participationGuideText = buildParticipationGuide(curriculumName, discord, deviceType);
+    const participationGuideText = buildParticipationGuide(curriculumName, discord, deviceType, drawingCourseStage);
     const additionalGuideText = getAdditionalGuideText(curriculumName);
 
     const introLine = templateType === "DIGITAL_DRAWING"
@@ -2095,6 +2108,7 @@ Affinity Universe
       $("siblingType").value = "BROTHER";
       $("discord").value = "해당없음";
       $("deviceType").value = "아이패드";
+      $("drawingCourseStage").value = "CONTINUING";
       $("startDay").value = "";
       $("endDay").value = "";
       $("lessonCount").value = "";
